@@ -3,7 +3,7 @@
   <rect width="860" height="420" rx="14" fill="#0d1117"/>
 
   <!-- Title -->
-  <text x="430" y="34" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="700" letter-spacing="2">C4i4 DELIVERY UI — SYSTEM ARCHITECTURE</text>
+  <text x="430" y="34" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="700" letter-spacing="2"> UI — SYSTEM ARCHITECTURE</text>
 
   <!-- BROWSER BOX -->
   <rect x="30" y="58" width="260" height="320" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
