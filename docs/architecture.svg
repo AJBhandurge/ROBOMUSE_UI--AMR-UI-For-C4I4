@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 420" font-family="'Segoe UI',Arial,sans-serif">
+  <!-- background -->
+  <rect width="860" height="420" rx="14" fill="#0d1117"/>
+
+  <!-- Title -->
+  <text x="430" y="34" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="700" letter-spacing="2">C4i4 DELIVERY UI — SYSTEM ARCHITECTURE</text>
+
+  <!-- BROWSER BOX -->
+  <rect x="30" y="58" width="260" height="320" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="160" y="82" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="700" letter-spacing="1.5">BROWSER (Operator)</text>
+
+  <!-- browser panels -->
+  <rect x="46" y="92"  width="228" height="36" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="160" y="116" text-anchor="middle" fill="#f9fafb" font-size="11" font-weight="600">🔐 Login Screen</text>
+
+  <rect x="46" y="136" width="228" height="36" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="160" y="160" text-anchor="middle" fill="#f9fafb" font-size="11">🗺 Live Map (EaselJS canvas)</text>
+
+  <rect x="46" y="180" width="108" height="30" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="100" y="200" text-anchor="middle" fill="#d1d5db" font-size="10">📍 Localization</text>
+
+  <rect x="162" y="180" width="112" height="30" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="218" y="200" text-anchor="middle" fill="#d1d5db" font-size="10">🗺 SLAM Mapping</text>
+
+  <rect x="46" y="218" width="108" height="30" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="100" y="238" text-anchor="middle" fill="#d1d5db" font-size="10">🛣 Waypoints</text>
+
+  <rect x="162" y="218" width="112" height="30" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="218" y="238" text-anchor="middle" fill="#d1d5db" font-size="10">🕹 Teleop</text>
+
+  <rect x="46" y="256" width="108" height="30" rx="6" fill="#0c2340" stroke="#1d4ed8" stroke-width="1.2"/>
+  <text x="100" y="276" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="600">📦 C4i4 Delivery</text>
+
+  <rect x="162" y="256" width="112" height="30" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="218" y="276" text-anchor="middle" fill="#d1d5db" font-size="10">🔋 Battery</text>
+
+  <rect x="46" y="294" width="228" height="30" rx="6" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="160" y="314" text-anchor="middle" fill="#d1d5db" font-size="10">▶ Program Runner / 📷 Camera</text>
+
+  <text x="160" y="350" text-anchor="middle" fill="#6e7681" font-size="10">robot_config.js · rosbridge_shim.js</text>
+  <text x="160" y="366" text-anchor="middle" fill="#6e7681" font-size="10">roslibjs · ros2djs · EaselJS</text>
+
+  <!-- FLASK SERVER BOX -->
+  <rect x="330" y="58" width="200" height="320" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="430" y="82" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700" letter-spacing="1.5">FLASK BACKEND :5000</text>
+
+  <rect x="346" y="92"  width="168" height="26" rx="5" fill="#1a2e1a" stroke="#2ea043" stroke-width="1"/>
+  <text x="430" y="110" text-anchor="middle" fill="#3fb950" font-size="10">REST API (30+ endpoints)</text>
+
+  <rect x="346" y="126" width="168" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="430" y="144" text-anchor="middle" fill="#d1d5db" font-size="10">Map listener (rclpy node)</text>
+
+  <rect x="346" y="160" width="168" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="430" y="178" text-anchor="middle" fill="#d1d5db" font-size="10">SLAM / Nav2 launchers</text>
+
+  <rect x="346" y="194" width="168" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="430" y="212" text-anchor="middle" fill="#d1d5db" font-size="10">mission_runner.py (subprocess)</text>
+
+  <rect x="346" y="228" width="168" height="26" rx="5" fill="#0c2340" stroke="#1d4ed8" stroke-width="1.2"/>
+  <text x="430" y="246" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="600">delivery_v2 launcher</text>
+
+  <rect x="346" y="262" width="168" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="430" y="280" text-anchor="middle" fill="#d1d5db" font-size="10">Load cell weight poll</text>
+
+  <rect x="346" y="296" width="168" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="430" y="314" text-anchor="middle" fill="#d1d5db" font-size="10">Program runner (subprocess)</text>
+
+  <text x="430" y="355" text-anchor="middle" fill="#6e7681" font-size="10">Python 3 · Flask · flask-cors</text>
+  <text x="430" y="370" text-anchor="middle" fill="#6e7681" font-size="10">rclpy · MultiThreadedExecutor</text>
+
+  <!-- ROS2 BOX -->
+  <rect x="570" y="58" width="258" height="320" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+  <text x="699" y="82" text-anchor="middle" fill="#f78166" font-size="12" font-weight="700" letter-spacing="1.5">ROS 2 (on robot)</text>
+
+  <rect x="586" y="92"  width="226" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="699" y="110" text-anchor="middle" fill="#d1d5db" font-size="10">rosbridge :9090  (WebSocket)</text>
+
+  <rect x="586" y="126" width="226" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="699" y="144" text-anchor="middle" fill="#d1d5db" font-size="10">slam_toolbox  (online async)</text>
+
+  <rect x="586" y="160" width="226" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="699" y="178" text-anchor="middle" fill="#d1d5db" font-size="10">nav2_bringup  (AMCL + Nav2)</text>
+
+  <rect x="586" y="194" width="226" height="26" rx="5" fill="#0c2340" stroke="#1d4ed8" stroke-width="1.2"/>
+  <text x="699" y="212" text-anchor="middle" fill="#93c5fd" font-size="10" font-weight="600">load_cell_pkg  (delivery state machine)</text>
+
+  <rect x="586" y="228" width="226" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="699" y="246" text-anchor="middle" fill="#d1d5db" font-size="10">web_video_server :8080</text>
+
+  <rect x="586" y="262" width="226" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="699" y="280" text-anchor="middle" fill="#d1d5db" font-size="10">jkbms_node  (battery BMS)</text>
+
+  <rect x="586" y="296" width="226" height="26" rx="5" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+  <text x="699" y="314" text-anchor="middle" fill="#d1d5db" font-size="10">auto_charging_node  (dock/undock)</text>
+
+  <text x="699" y="355" text-anchor="middle" fill="#6e7681" font-size="10">ROS 2 Humble / Iron</text>
+  <text x="699" y="370" text-anchor="middle" fill="#6e7681" font-size="10">/map · /cmd_vel · /amcl_pose · /odom</text>
+
+  <!-- ARROWS: Browser → Flask -->
+  <line x1="290" y1="218" x2="328" y2="218" stroke="#3fb950" stroke-width="1.8" marker-end="url(#ag)"/>
+  <text x="309" y="212" text-anchor="middle" fill="#3fb950" font-size="9">HTTP REST</text>
+
+  <!-- ARROWS: Browser → rosbridge -->
+  <path d="M 160 60 Q 160 42 430 42 Q 610 42 670 58" fill="none" stroke="#58a6ff" stroke-width="1.8" marker-end="url(#ab)" stroke-dasharray="5,3"/>
+  <text x="430" y="38" text-anchor="middle" fill="#58a6ff" font-size="9">WebSocket ws://robot:9090</text>
+
+  <!-- ARROWS: Browser → camera -->
+  <path d="M 160 378 Q 160 398 480 398 Q 680 398 699 380" fill="none" stroke="#f78166" stroke-width="1.5" marker-end="url(#ar)" stroke-dasharray="4,3"/>
+  <text x="430" y="408" text-anchor="middle" fill="#f78166" font-size="9">MJPEG stream  http://robot:8080</text>
+
+  <!-- ARROWS: Flask → ROS2 -->
+  <line x1="530" y1="218" x2="568" y2="218" stroke="#f78166" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="549" y="212" text-anchor="middle" fill="#f78166" font-size="9">subprocess</text>
+  <text x="549" y="224" text-anchor="middle" fill="#f78166" font-size="9">ros2 launch</text>
+
+  <!-- defs -->
+  <defs>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+    </marker>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#f78166"/>
+    </marker>
+  </defs>
+</svg>

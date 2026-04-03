@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 180" font-family="'Segoe UI',Arial,sans-serif">
+  <rect width="860" height="180" rx="12" fill="#0d1117"/>
+  <text x="430" y="26" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700" letter-spacing="2">C4i4 DELIVERY STATE MACHINE</text>
+
+  <!-- States -->
+  <!-- IDLE -->
+  <rect x="14"  y="50" width="82" height="42" rx="7" fill="#1f2937" stroke="#374151" stroke-width="1.5"/>
+  <text x="55"  y="67" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="700">IDLE</text>
+  <text x="55"  y="83" text-anchor="middle" fill="#6b7280" font-size="8.5">wait for load</text>
+
+  <!-- DOCK_LOAD -->
+  <rect x="118" y="50" width="84" height="42" rx="7" fill="#1e1b4b" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="160" y="67" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="700">DOCK_LOAD</text>
+  <text x="160" y="83" text-anchor="middle" fill="#a78bfa" font-size="8">align at load tag</text>
+
+  <!-- WAIT_BEFORE_NAV -->
+  <rect x="224" y="50" width="96" height="42" rx="7" fill="#1c2433" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="272" y="67" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="700">WAIT_BEFORE</text>
+  <text x="272" y="80" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="700">_NAV</text>
+
+  <!-- NAVIGATE_TO_DELIVERY -->
+  <rect x="342" y="50" width="104" height="42" rx="7" fill="#0c2340" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="394" y="64" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700">NAVIGATE_TO</text>
+  <text x="394" y="78" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700">_DELIVERY</text>
+
+  <!-- DOCK_DELIVERY -->
+  <rect x="468" y="50" width="90" height="42" rx="7" fill="#1e1b4b" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="513" y="65" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="700">DOCK</text>
+  <text x="513" y="79" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="700">_DELIVERY</text>
+
+  <!-- WAIT_FOR_UNLOAD -->
+  <rect x="580" y="50" width="96" height="42" rx="7" fill="#0c2218" stroke="#10b981" stroke-width="1.5"/>
+  <text x="628" y="65" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700">WAIT_FOR</text>
+  <text x="628" y="79" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700">_UNLOAD</text>
+
+  <!-- RETURN_WAIT -->
+  <rect x="698" y="50" width="84" height="42" rx="7" fill="#1c2433" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="740" y="65" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="700">RETURN</text>
+  <text x="740" y="79" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="700">_WAIT</text>
+
+  <!-- NAVIGATE_TO_LOADING (bottom row) -->
+  <rect x="580" y="118" width="104" height="42" rx="7" fill="#0c2340" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="632" y="134" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700">NAVIGATE_TO</text>
+  <text x="632" y="148" text-anchor="middle" fill="#93c5fd" font-size="9" font-weight="700">_LOADING</text>
+
+  <!-- DOCK_LOAD_RETURN (bottom row) -->
+  <rect x="440" y="118" width="110" height="42" rx="7" fill="#1e1b4b" stroke="#6d28d9" stroke-width="1.5"/>
+  <text x="495" y="134" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="700">DOCK_LOAD</text>
+  <text x="495" y="148" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="700">_RETURN</text>
+
+  <!-- Arrows top row -->
+  <line x1="96"  y1="71" x2="116" y2="71" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="202" y1="71" x2="222" y2="71" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="320" y1="71" x2="340" y2="71" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="446" y1="71" x2="466" y2="71" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="558" y1="71" x2="578" y2="71" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+  <line x1="676" y1="71" x2="696" y2="71" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Down arrow: RETURN_WAIT → NAVIGATE_TO_LOADING -->
+  <line x1="740" y1="92" x2="740" y2="108" stroke="#4b5563" stroke-width="1.5"/>
+  <line x1="740" y1="108" x2="686" y2="118" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Left arrow: NAVIGATE_TO_LOADING → DOCK_LOAD_RETURN -->
+  <line x1="580" y1="139" x2="552" y2="139" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Left arrow: DOCK_LOAD_RETURN → IDLE (wrap around bottom) -->
+  <line x1="440" y1="139" x2="55" y2="139" stroke="#4b5563" stroke-width="1.5"/>
+  <line x1="55"  y1="139" x2="55"  y2="92" stroke="#4b5563" stroke-width="1.5" marker-end="url(#a)"/>
+
+  <!-- Trigger labels -->
+  <text x="55"  y="115" text-anchor="middle" fill="#10b981" font-size="7.5">weight ≥ 2kg</text>
+  <text x="160" y="115" text-anchor="middle" fill="#10b981" font-size="7.5">docked ✓</text>
+  <text x="272" y="115" text-anchor="middle" fill="#f59e0b" font-size="7.5">delay done</text>
+  <text x="394" y="115" text-anchor="middle" fill="#3b82f6" font-size="7.5">arrived</text>
+  <text x="513" y="115" text-anchor="middle" fill="#10b981" font-size="7.5">docked ✓</text>
+  <text x="628" y="115" text-anchor="middle" fill="#ef4444" font-size="7.5">weight = 0</text>
+
+  <defs>
+    <marker id="a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#4b5563"/>
+    </marker>
+  </defs>
+</svg>
