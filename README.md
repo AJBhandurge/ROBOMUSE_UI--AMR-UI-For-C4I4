@@ -1,5 +1,5 @@
-# ROBOMUSE_UI--AMR-UI-
-# 🤖 UI — AMR Web Control Dashboard
+# ROBOMUSE_UI--AMR-UI-For-C4I4
+# 🤖 UI for C4I4 — AMR Web Control Dashboard
 
 > **SVR Robotics · RoboMuse Control System**  
 > A browser-based operator interface for Autonomous Mobile Robots running **ROS 2 + Nav2**, with a fully autonomous load-cell-triggered delivery pipeline.
