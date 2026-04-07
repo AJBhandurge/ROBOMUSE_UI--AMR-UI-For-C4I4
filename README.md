@@ -101,7 +101,7 @@ c4i4_delivery_ui_ws/
 ```bash
 mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/src
-git clone https://github.com/YOUR_USERNAME/c4i4_delivery_ui.git delivery_ui
+git clone https://github.com/AJBhandurge/ROBOMUSE_UI--AMR-UI-For-C4I4.git
 
 cd ~/ros2_ws
 colcon build --packages-select delivery_ui
@@ -156,15 +156,14 @@ ros2 launch rosbridge_server rosbridge_websocket_launch.xml \
 # Terminal 2 — camera (optional)
 ros2 run web_video_server web_video_server
 
-# Terminal 3 — your robot bringup (sensors, motors, etc.)
-ros2 launch your_robot_pkg bringup.launch.py
+
 ```
 
 ### 4. Start the Flask backend
 
 ```bash
-cd ~/ros2_ws/src/delivery_ui/backend
-python3 server.py
+# Terminal 3 —
+python3 ~/your_ws/src/delivery_ui/backend/server.py
 ```
 
 ### 5. Open the dashboard
