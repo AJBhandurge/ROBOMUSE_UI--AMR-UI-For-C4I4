@@ -1,6 +1,21 @@
 # ROBOMUSE_UI--AMR-UI-For-C4I4
 # 🤖 UI for C4I4 — AMR Web Control Dashboard
 
+<img width="1861" height="951" alt="Screenshot 2026-04-13 104558" src="https://github.com/user-attachments/assets/11046e72-566c-4cf9-ad03-1e931871c024" />
+
+<img width="1876" height="937" alt="Screenshot 2026-04-13 104608" src="https://github.com/user-attachments/assets/9214e892-ec10-420a-9fc4-ca9ade1519fe" />
+
+<img width="1859" height="942" alt="Screenshot 2026-04-13 113409" src="https://github.com/user-attachments/assets/35d4aa6b-02e1-459a-8cd9-9907fc1ee0f6" />
+
+<img width="1858" height="929" alt="Screenshot 2026-04-13 113428" src="https://github.com/user-attachments/assets/ec83515d-28e2-4ea8-bc9c-c2ff70ca2f95" />
+
+<img width="1855" height="926" alt="Screenshot 2026-04-13 113508" src="https://github.com/user-attachments/assets/0081f074-1fda-43d4-8714-18aa3ca03f6f" />
+
+<img width="1862" height="929" alt="Screenshot 2026-04-13 114927" src="https://github.com/user-attachments/assets/a66bc719-0a33-447f-bc2a-5393b158f821" />
+
+<img width="1866" height="936" alt="Screenshot 2026-04-13 114935" src="https://github.com/user-attachments/assets/92ac4edf-26ca-41cb-b29a-d754326b6b58" />
+
+
 > **SVR Robotics · RoboMuse Control System**  
 > A browser-based operator interface for Autonomous Mobile Robots running **ROS 2 + Nav2**, with a fully autonomous load-cell-triggered delivery pipeline.
 
