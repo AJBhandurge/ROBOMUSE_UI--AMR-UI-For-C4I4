@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVR Robotics — AMR Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   VARIABLES & RESET
+═══════════════════════════════════════════════════════════ */
+:root {
+  --bg:        #050d1a;
+  --panel:     #0a1628;
+  --panel2:    #0f1f38;
+  --border:    #1a3a5c;
+  --accent:    #0ea5e9;
+  --accent2:   #f97316;
+  --green:     #22c55e;
+  --red:       #ef4444;
+  --yellow:    #f59e0b;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --font-head: 'Orbitron', monospace;
+  --font-body: 'Exo 2', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── LIGHT THEME ───────────────────────────── */
+body.theme-light {
+  --bg:        #f1f5f9;
+  --panel:     #ffffff;
+  --panel2:    #e2eaf4;
+  --border:    #c8d8ec;
+  --accent:    #0284c7;
+  --accent2:   #ea580c;
+  --green:     #16a34a;
+  --red:       #dc2626;
+  --yellow:    #d97706;
+  --text:      #0f172a;
+  --muted:     #64748b;
+}
+body.theme-light::before { display: none; }
+body.theme-light .topbar { background: #ffffff; border-bottom: 2px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+/* Login screen in light theme — lighter outer bg but card stays dark */
+/* Login always keeps original dark navy style in both themes */
+body.theme-light #screen-login {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, #0a2040 0%, transparent 70%),
+    #050d1a;
+}
+body.theme-light .sidebar { background: #ffffff; border-right: 1px solid var(--border); }
+body.theme-light .sidebar-block input,
+body.theme-light .sidebar-block select { background: #f8fafc; border-color: var(--border); color: var(--text); }
+body.theme-light .bottom-bar { background: #f8fafc; border-top: 1px solid var(--border); }
+body.theme-light .sec-label { color: #475569; background: transparent; }
+body.theme-light .btn-primary { background: rgba(2,132,199,0.1); border-color: #0284c7; color: #0284c7; }
+body.theme-light .btn-danger  { background: rgba(220,38,38,0.08); border-color: #dc2626; color: #dc2626; }
+body.theme-light .btn-success { background: rgba(22,163,74,0.08); border-color: #16a34a; color: #16a34a; }
+body.theme-light .btn-warn    { background: rgba(215,119,6,0.08);  border-color: #d97706; color: #d97706; }
+body.theme-light .tab-btn     { color: #475569; }
+body.theme-light .tab-btn.active { background: rgba(2,132,199,0.12); color: #0284c7; border-bottom-color: #0284c7; }
+body.theme-light .status-item label { color: #64748b; }
+body.theme-light .mode-tile   { background: #ffffff; border-color: var(--border); }
+body.theme-light .wp-item     { background: rgba(0,0,0,0.02); border-color: var(--border); }
+body.theme-light #map,
+body.theme-light #mapContainer { background: #dde7f2; }
+body.theme-light .topbar-logo { color: var(--accent); background: transparent; }
+body.theme-light .toast        { background: rgba(255,255,255,0.97); color: var(--text); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCANLINE OVERLAY
+═══════════════════════════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PAGE MANAGER  (shows/hides screens)
+═══════════════════════════════════════════════════════════ */
+.screen { display: none; width: 100vw; height: 100vh; }
+.screen.active { display: flex; }
+
+/* ═══════════════════════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════════════════════ */
+#screen-login {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, #0a2040 0%, transparent 70%),
+    var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+#screen-login::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, transparent 49.5%, rgba(14,165,233,0.04) 50%, transparent 50.5%),
+    linear-gradient(0deg, transparent 49.5%, rgba(14,165,233,0.04) 50%, transparent 50.5%);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+.login-box {
+  position: relative; z-index: 2;
+  background: linear-gradient(135deg, rgba(10,22,40,0.95), rgba(15,31,56,0.95));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 52px;
+  width: 420px;
+  box-shadow: 0 0 60px rgba(14,165,233,0.12), 0 0 0 1px rgba(14,165,233,0.05);
+  text-align: center;
+}
+.login-logo {
+  width: 80px; height: 80px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-head);
+  font-size: 24px; font-weight: 900;
+  color: #fff;
+  box-shadow: 0 0 30px rgba(14,165,233,0.4);
+}
+.login-title {
+  font-family: var(--font-head);
+  font-size: 22px; font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 3px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 20px rgba(14,165,233,0.5);
+}
+.login-sub { color: var(--muted); font-size: 13px; margin-bottom: 36px; }
+.login-field {
+  display: flex; align-items: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+.login-field:focus-within { border-color: var(--accent); }
+.login-field svg { opacity: 0.4; flex-shrink: 0; }
+.login-field input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: var(--font-body);
+  font-size: 14px; flex: 1;
+}
+.login-field input::placeholder { color: var(--muted); }
+.btn-login {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  border: none; border-radius: 8px;
+  color: #fff; font-family: var(--font-head);
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 2px; cursor: pointer;
+  margin-top: 8px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 20px rgba(14,165,233,0.3);
+}
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(14,165,233,0.4); }
+.btn-login:active { transform: translateY(0); }
+.login-error {
+  color: var(--red); font-size: 12px;
+  margin-top: 10px; display: none;
+}
+.login-copy { position: absolute; bottom: 24px; color: var(--muted); font-size: 11px; }
+@keyframes loginShake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-8px); }
+  40%      { transform: translateX(8px); }
+  60%      { transform: translateX(-6px); }
+  80%      { transform: translateX(6px); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APP SHELL  (all non-login screens share this chrome)
+═══════════════════════════════════════════════════════════ */
+#screen-app {
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+.topbar {
+  height: 62px; flex-shrink: 0;
+  background: linear-gradient(90deg, var(--panel), var(--panel2));
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 16px;
+}
+.topbar-logo {
+  font-family: var(--font-head);
+  font-size: 18px; font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px rgba(14,165,233,0.4);
+}
+.topbar-sep { width: 1px; height: 24px; background: var(--border); }
+.topbar-tabs { display: flex; gap: 2px; flex: 1; }
+.tab-btn {
+  padding: 9px 22px;
+  background: none; border: 1px solid transparent;
+  color: var(--muted); font-family: var(--font-body);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer; border-radius: 6px;
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: var(--text); border-color: var(--border); }
+.tab-btn.active {
+  color: var(--accent); border-color: var(--accent);
+  background: rgba(14,165,233,0.08);
+  box-shadow: 0 0 12px rgba(14,165,233,0.15);
+}
+.topbar-status { display: flex; align-items: center; gap: 16px; font-size: 14px; }
+#ros-status { color: var(--yellow); font-weight: 600; letter-spacing: 1px; }
+
+/* Battery & temp widgets in topbar */
+.topbar-stat {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; min-width: 64px;
+}
+.topbar-stat-label {
+  font-size: 9px; letter-spacing: 1.5px; color: var(--muted);
+  text-transform: uppercase; font-family: var(--font-head);
+}
+.topbar-stat-val {
+  font-size: 15px; font-weight: 700; color: var(--green);
+  font-family: var(--font-head); letter-spacing: 1px;
+}
+.battery-bar-wrap {
+  width: 100%; height: 4px; background: rgba(255,255,255,0.08);
+  border-radius: 2px; overflow: hidden;
+}
+.battery-bar-fill {
+  height: 100%; width: 100%;
+  background: var(--green); border-radius: 2px;
+  transition: width 0.5s, background 0.5s;
+}
+.btn-logout {
+  padding: 8px 18px;
+  background: none; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 5px;
+  cursor: pointer; font-size: 13px; font-family: var(--font-body);
+  transition: all 0.2s;
+}
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════
+   APP CONTENT AREA
+═══════════════════════════════════════════════════════════ */
+.app-content { flex: 1; overflow: hidden; position: relative; min-height: 0; display: flex; flex-direction: column; height: 0; }
+.view { display: none; width: 100%; height: 100%; min-height: 0; flex: 1; }
+.view.active { display: flex; }
+
+/* ═══════════════════════════════════════════════════════════
+   HOME VIEW  (big mode tiles)
+═══════════════════════════════════════════════════════════ */
+#view-home {
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 24px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(14,165,233,0.04) 0%, transparent 70%),
+    var(--bg);
+}
+.home-title {
+  font-family: var(--font-head);
+  font-size: 13px; letter-spacing: 4px;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.mode-tiles { display: flex; gap: 20px; }
+.mode-tile {
+  width: 260px; height: 240px;
+  background: linear-gradient(135deg, var(--panel), var(--panel2));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+  transition: all 0.25s;
+  position: relative; overflow: hidden;
+}
+.mode-tile::before {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--tile-color, var(--accent));
+  transform: scaleX(0);
+  transition: transform 0.25s;
+}
+.mode-tile:hover { border-color: var(--tile-color, var(--accent)); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+.mode-tile:hover::before { transform: scaleX(1); }
+.tile-icon { font-size: 60px; }
+.tile-label {
+  font-family: var(--font-head);
+  font-size: 15px; font-weight: 700;
+  letter-spacing: 2px; color: var(--text);
+}
+.tile-desc { font-size: 13px; color: var(--muted); text-align: center; padding: 0 12px; }
+
+/* ═══════════════════════════════════════════════════════════
+   SHARED LAYOUT: SIDEBAR + MAIN
+═══════════════════════════════════════════════════════════ */
+.sidebar {
+  width: 300px; min-width: 0; max-width: 90vw; flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto; overflow-x: hidden;
+  position: relative;
+  transition: width 0.2s ease;
+}
+.sidebar.collapsed { width: 0 !important; overflow: hidden; border-right: none; }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Sidebar drag handle */
+.sidebar-resizer {
+  position: absolute; right: -4px; top: 0; bottom: 0;
+  width: 8px; cursor: col-resize; z-index: 100;
+  background: transparent;
+}
+.sidebar-resizer:hover, .sidebar-resizer.dragging {
+  background: rgba(14,165,233,0.25);
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle {
+  position: absolute; top: 50%; right: -18px;
+  transform: translateY(-50%);
+  width: 18px; height: 44px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer; z-index: 101;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: 10px;
+  transition: background 0.2s, color 0.2s;
+}
+.sidebar-toggle:hover { background: var(--accent); color: #fff; }
+
+/* Bottom bar resizer */
+.bottom-resizer {
+  height: 6px; width: 100%; cursor: row-resize;
+  background: transparent; flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+.bottom-resizer:hover, .bottom-resizer.dragging {
+  background: rgba(14,165,233,0.2);
+}
+.bottom-resizer::after {
+  content: '⋯';
+  position: absolute; top: -6px; left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted); font-size: 14px;
+  pointer-events: none;
+}
+
+.main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+.sec-label {
+  font-family: var(--font-head);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 2px; color: var(--muted);
+  padding: 18px 16px 8px;
+  text-transform: uppercase;
+}
+.sidebar-block { padding: 0 14px 14px; }
+
+/* ═══════════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════════ */
+button {
+  font-family: var(--font-body); font-size: 13px;
+  cursor: pointer; border-radius: 7px; border: none;
+  transition: all 0.15s;
+}
+.btn { /* default */
+  display: block; width: 100%;
+  padding: 16px 18px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--text); text-align: left;
+  margin-bottom: 8px; font-size: 16px;
+  border-radius: 8px;
+}
+.btn:hover { background: rgba(255,255,255,0.09); border-color: var(--accent); }
+.btn-primary {
+  display: block; width: 100%;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  border: none; color: #fff;
+  font-weight: 600; margin-bottom: 8px; font-size: 16px;
+  border-radius: 8px;
+  box-shadow: 0 3px 12px rgba(14,165,233,0.25);
+}
+.btn-primary:hover { box-shadow: 0 5px 20px rgba(14,165,233,0.4); transform: translateY(-1px); }
+.btn-danger {
+  display: block; width: 100%;
+  padding: 16px 18px; font-size: 16px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.4);
+  color: var(--red); font-weight: 600; margin-bottom: 8px;
+}
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-success {
+  display: block; width: 100%;
+  padding: 16px 18px; font-size: 16px;
+  background: rgba(34,197,94,0.12);
+  border: 1px solid rgba(34,197,94,0.4);
+  color: var(--green); font-weight: 600; margin-bottom: 8px;
+}
+.btn-success:hover { background: rgba(34,197,94,0.2); }
+.btn-warn {
+  display: block; width: 100%;
+  padding: 16px 18px; font-size: 16px;
+  background: rgba(249,115,22,0.12);
+  border: 1px solid rgba(249,115,22,0.4);
+  color: var(--accent2); font-weight: 600; margin-bottom: 8px;
+}
+.btn-warn:hover { background: rgba(249,115,22,0.2); }
+.btn-sm {
+  padding: 9px 16px; font-size: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted); margin-bottom: 6px;
+  display: inline-block;
+}
+.btn-sm:hover { color: var(--text); border-color: var(--accent); }
+button:disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+
+/* Pose / goal buttons */
+.btn-pose { display:block; width:100%; padding:15px 18px; font-size:15px; background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.4); color:#a78bfa; font-weight:600; margin-bottom:8px; border-radius:8px; }
+.btn-pose:hover { background:rgba(139,92,246,0.2); }
+.btn-pose-ready { border-color:#a78bfa !important; }
+.btn-goal { display:block; width:100%; padding:15px 18px; font-size:15px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.3); color:var(--green); font-weight:600; margin-bottom:8px; border-radius:8px; }
+.btn-goal:hover { background:rgba(34,197,94,0.16); }
+.btn-goal-ready { border-color:var(--green) !important; box-shadow:0 0 10px rgba(34,197,94,0.2); }
+.btn-goal-active { background:rgba(34,197,94,0.25) !important; }
+.btn-home { display:block; width:100%; padding:15px 18px; font-size:15px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.4); color:#818cf8; font-weight:600; margin-bottom:8px; border-radius:8px; }
+.btn-home:hover { background:rgba(99,102,241,0.2); }
+/* Toggle switch */
+.toggle-switch { position:relative; display:inline-block; width:42px; height:22px; flex-shrink:0; }
+.toggle-switch input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--border); border-radius:22px; transition:.2s; }
+.toggle-slider:before { content:""; position:absolute; width:16px; height:16px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+.toggle-switch input:checked + .toggle-slider { background:var(--accent); }
+.toggle-switch input:checked + .toggle-slider:before { transform:translateX(20px); }
+.btn-wp { display:block; width:100%; padding:13px 16px; font-size:14px; background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.3); color:var(--accent2); margin-bottom:8px; border-radius:8px; }
+.btn-wp:hover { background:rgba(249,115,22,0.2); }
+.btn-wp-active { background:rgba(249,115,22,0.25) !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   INPUTS / SELECTS
+═══════════════════════════════════════════════════════════ */
+input[type=text], input[type=number], select {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body); font-size: 15px;
+  padding: 11px 12px;
+  margin-bottom: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, select:focus { border-color: var(--accent); }
+select option { background: var(--panel); }
+input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; margin-bottom: 6px; }
+
+/* ═══════════════════════════════════════════════════════════
+   MAP / CANVAS AREA
+═══════════════════════════════════════════════════════════ */
+#mapContainer {
+  flex: 1; position: relative; overflow: hidden;
+  background: #020912;
+  min-height: 0;
+}
+#map {
+  position: absolute; inset: 0;
+  display: none;
+  cursor: default;
+  width: 100%; height: 100%;
+}
+#map canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+#mapImage {
+  display: none; max-width: 100%; max-height: 100%;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  border: 1px solid var(--border); border-radius: 4px;
+}
+
+/* Crosshair overlay when placing pose/goal */
+#pose-banner {
+  display: none;
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.8); border: 1px solid var(--accent);
+  border-radius: 8px; padding: 8px 20px;
+  color: var(--accent); font-size: 12px;
+  z-index: 10; white-space: nowrap; gap: 10px;
+  align-items: center;
+}
+#pose-coords { font-family: monospace; }
+
+/* ═══════════════════════════════════════════════════════════
+   BOTTOM BAR (camera + status)
+═══════════════════════════════════════════════════════════ */
+.bottom-bar {
+  height: 200px; min-height: 0; max-height: 60vh; flex-shrink: 0;
+  background: var(--panel);
+  display: flex; overflow: hidden;
+}
+.camera-panel {
+  /* 16:9 ratio: width = height * 16/9. At 200px height → 355px width */
+  width: calc(200px * 16 / 9); flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  position: relative; overflow: hidden;
+  background: #000;
+}
+.camera-panel img {
+  width: 100%; height: 100%; object-fit: contain;
+  background: #000;
+}
+.camera-label {
+  position: absolute; top: 6px; left: 8px;
+  font-size: 10px; font-weight: 600;
+  color: var(--accent); letter-spacing: 1px;
+  background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;
+}
+.status-panel {
+  flex: 1; padding: 12px 16px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.status-row { display: flex; gap: 20px; align-items: center; }
+.status-item { display: flex; flex-direction: column; gap: 2px; }
+.status-item label { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+.status-item span { font-size: 15px; font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════
+   TELEOP D-PAD
+═══════════════════════════════════════════════════════════ */
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 72px);
+  grid-template-rows: repeat(3, 72px);
+  gap: 6px; margin: 0 auto;
+}
+.dpad-btn {
+  width: 72px; height: 72px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text);
+  font-size: 26px; display: flex;
+  align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.1s;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.dpad-btn:hover { background: rgba(14,165,233,0.15); border-color: var(--accent); }
+.dpad-btn:active, .dpad-btn.active { background: rgba(14,165,233,0.3); border-color: var(--accent); }
+.dpad-btn.stop-btn {
+  background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3);
+  color: var(--red);
+}
+.dpad-btn.stop-btn:hover { background: rgba(239,68,68,0.25); }
+.dpad-center { width: 44px; height: 44px; } /* empty center */
+
+/* ═══════════════════════════════════════════════════════════
+   MAPPING VIEW
+═══════════════════════════════════════════════════════════ */
+#view-mapping { }
+
+/* ═══════════════════════════════════════════════════════════
+   LOCALIZATION VIEW
+═══════════════════════════════════════════════════════════ */
+#view-localization { }
+
+/* ═══════════════════════════════════════════════════════════
+   CUSTOM / DELIVERY VIEW
+═══════════════════════════════════════════════════════════ */
+#view-custom {
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 32px 40px; gap: 24px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 30%, rgba(249,115,22,0.04) 0%, transparent 70%),
+    var(--bg);
+}
+.custom-title {
+  font-family: var(--font-head);
+  font-size: 18px; font-weight: 700;
+  color: var(--accent2); letter-spacing: 3px;
+}
+.custom-tiles { display: flex; gap: 16px; flex-wrap: wrap; }
+.custom-tile {
+  width: 200px; padding: 28px 20px;
+  background: linear-gradient(135deg, var(--panel), var(--panel2));
+  border: 1px solid var(--border);
+  border-radius: 14px; cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 14px;
+  transition: all 0.25s;
+}
+.custom-tile:hover {
+  border-color: var(--accent2); transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(249,115,22,0.15);
+}
+.custom-tile .tile-icon { font-size: 40px; }
+.custom-tile .tile-label {
+  font-family: var(--font-head); font-size: 11px;
+  font-weight: 700; letter-spacing: 2px; color: var(--text);
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DELIVERY PANEL (inside sidebar)
+═══════════════════════════════════════════════════════════ */
+.delivery-status-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px;
+  margin-bottom: 8px; font-size: 12px;
+}
+.delivery-state { font-weight: 600; margin-bottom: 6px; }
+.delivery-weight-track {
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px; height: 5px;
+  margin-bottom: 6px; overflow: hidden;
+}
+.delivery-weight-fill {
+  height: 100%; width: 0%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s, background 0.3s;
+}
+.delivery-info-row {
+  display: flex; justify-content: space-between;
+  color: var(--muted); font-size: 11px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MISSION WAYPOINT LIST
+═══════════════════════════════════════════════════════════ */
+#wp-list { margin-bottom: 6px; }
+.wp-item {
+  display: flex; align-items: center;
+  padding: 6px 8px;
+  background: rgba(120,120,140,0.18);
+  border: 1px solid rgba(120,120,160,0.25);
+  border-radius: 24px; margin-bottom: 5px;   /* pill shape like Image 1 */
+  font-size: 12px; gap: 6px;
+}
+.wp-name  { flex: 1; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis;
+             white-space: nowrap; font-size: 13px; font-weight: 500; margin: 0 6px; }
+.wp-num   { color: var(--accent); font-weight: 700; margin: 0 2px; min-width: 12px; font-size: 11px; flex-shrink:0; }
+.wp-drag  { color: var(--muted); cursor: grab; margin-right: 3px; font-size: 11px; flex-shrink:0; }
+.wp-delay-wrap { display: flex; align-items: center; justify-content:center;
+                 gap: 0; flex-shrink: 0; }
+.wp-delay-input { width: 44px; height: 26px; text-align: center; padding: 0 4px;
+                  background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.4);
+                  border-radius: 6px; color: #e2e8f0; -webkit-text-fill-color: #e2e8f0;
+                  font-size: 12px; font-weight: 700; box-sizing: border-box;
+                  -moz-appearance: textfield; appearance: textfield; }
+.wp-delay-input::-webkit-inner-spin-button,
+.wp-delay-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+body.theme-light .wp-delay-input { background: rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.3);
+                  color: #0f172a; -webkit-text-fill-color: #0f172a; }
+.wp-delay-unit  { color: var(--muted); font-size: 10px; display:none; }  /* hide 's' unit to keep clean */
+.wp-item-name { flex: 1; color: var(--text); }
+.wp-item-coords { color: var(--muted); font-size: 11px; font-family: monospace; margin: 0 6px; }
+.wp-del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; padding: 0 2px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  padding: 10px 18px; border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 10000; max-width: 320px;
+  border-left: 3px solid var(--accent);
+  background: rgba(10,22,40,0.97);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.toast.show { opacity: 1; }
+.toast.success { border-left-color: var(--green); }
+.toast.error   { border-left-color: var(--red); }
+.toast.info    { border-left-color: var(--accent); }
+
+/* ═══════════════════════════════════════════════════════════
+   SPEED DISPLAY
+═══════════════════════════════════════════════════════════ */
+.speed-display {
+  display: flex; justify-content: space-between;
+  font-size: 13px; color: var(--muted); margin-bottom: 3px;
+}
+.speed-val { color: var(--accent); font-weight: 600; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE
+═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  body { font-size: 14px; overflow: auto; }
+
+  /* Topbar stacks on mobile */
+  .topbar {
+    height: auto; flex-wrap: wrap;
+    padding: 8px 12px; gap: 8px;
+  }
+  .topbar-tabs { order: 3; width: 100%; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+  .tab-btn { padding: 8px 14px; font-size: 12px; white-space: nowrap; }
+  .topbar-logo { font-size: 14px; }
+  .topbar-stat { min-width: 50px; }
+  .topbar-stat-val { font-size: 13px; }
+
+  /* Views become column-stacked on mobile */
+  .view { flex-direction: column; height: auto; min-height: calc(100vh - 100px); overflow-y: auto; }
+
+  /* Sidebar becomes top drawer on mobile */
+  .sidebar {
+    width: 100% !important;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 260px;
+    overflow-y: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .sidebar.collapsed { max-height: 0 !important; height: 0; overflow: hidden; }
+  .sidebar-resizer { display: none; }
+  .sidebar-toggle {
+    position: fixed; bottom: 16px; left: 16px;
+    right: auto; top: auto; transform: none;
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid var(--border); z-index: 200;
+    font-size: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    background: var(--panel2);
+  }
+
+  /* Main area fills remaining space */
+  .main-area { flex: 1; min-height: 300px; }
+
+  /* Bottom bar goes thin on mobile */
+  .bottom-bar { height: 90px !important; }
+  .camera-panel { width: 120px; }
+  .bottom-resizer { display: none; }
+
+  /* Map fills properly */
+  #mapContainer { min-height: 250px; }
+  #loc-preview-area { min-height: 250px; }
+
+  /* D-pad smaller on mobile */
+  .dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); }
+  .dpad-btn { width: 48px; height: 48px; }
+
+  /* Login box fits mobile */
+  .login-box { width: 90vw; max-width: 400px; padding: 36px 28px; }
+  .login-title { font-size: 18px; letter-spacing: 2px; }
+
+  /* Sidebar blocks horizontal on mobile */
+  .sidebar-block { flex: 1 1 140px; }
+  .sec-label { width: 100%; }
+
+  /* Mode tiles wrap */
+  .mode-tiles { flex-wrap: wrap; justify-content: center; }
+  .mode-tile { width: 44%; min-width: 140px; height: 160px; }
+}
+
+@media (max-width: 480px) {
+  .topbar-stat { display: none; } /* hide battery/temp on very small screens, show in status bar */
+  .tab-btn { padding: 7px 10px; font-size: 11px; }
+  .mode-tile { width: 90%; height: 120px; }
+  .tile-icon { font-size: 36px; }
+  .dpad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); }
+  .dpad-btn { width: 44px; height: 44px; font-size: 18px; }
+  .btn-primary, .btn-danger, .btn-success, .btn-warn, .btn { padding: 11px 12px; font-size: 14px; }
+}
+
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════════════════════════════ -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div class="login-logo">
+      <img src="data:image/png;base64,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"
+           style="width:76px;height:76px;object-fit:contain;border-radius:50%;" alt="SVR">
+    </div>
+    <div class="login-title" style="letter-spacing:2px;">SVR ROBOTICS</div>
+    <div class="login-sub">RoboMuse Control System</div>
+    <div class="login-field">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <input type="text" id="login-user" placeholder="USER ID" autocomplete="off">
+    </div>
+    <div class="login-field">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <input type="password" id="login-pass" placeholder="ACCESS KEY">
+    </div>
+    <button class="btn-login" onclick="doLogin()">AUTHENTICATE SYSTEM</button>
+    <div class="login-error" id="login-error">⚠ Invalid credentials</div>
+  </div>
+  <div class="login-copy">© SVR Robotics Pvt Ltd</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     APP SCREEN
+════════════════════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo" style="display:flex;align-items:center;gap:10px;padding:0;">
+      <img src="data:image/png;base64,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"
+           style="height:38px;width:auto;object-fit:contain;" alt="SVR Robotics">
+      <div style="width:1px;height:30px;background:var(--border);"></div>
+      <img src="data:image/png;base64,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"
+           style="height:38px;width:auto;object-fit:contain;" alt="C4i4 Lab">
+    </div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-tabs">
+      <button class="tab-btn active" onclick="switchView('home')">⌂ HOME</button>
+      <button class="tab-btn" id="tab-mapping"      onclick="switchView('mapping')">🗺 MAPPING</button>
+      <button class="tab-btn" id="tab-localization" onclick="switchView('localization')">📍 LOCALIZATION</button>
+      <button class="tab-btn" id="tab-custom"       onclick="switchView('custom')">⚙ CUSTOM APP</button>
+      <button class="tab-btn" id="tab-delivery"     onclick="switchView('delivery')">🚚 C4i4</button>
+    </div>
+    <div class="topbar-status">
+      <!-- Battery % -->
+      <div class="topbar-stat">
+        <div class="topbar-stat-label">Battery</div>
+        <div class="topbar-stat-val" id="battery-val">—%</div>
+        <div class="battery-bar-wrap"><div class="battery-bar-fill" id="battery-bar" style="width:100%"></div></div>
+      </div>
+      <div class="topbar-sep"></div>
+      <!-- Load Cell Weight -->
+      <div class="topbar-stat">
+        <div class="topbar-stat-label">Weight</div>
+        <div class="topbar-stat-val" id="topbar-weight-val" style="color:var(--accent);">— kg</div>
+      </div>
+      <div class="topbar-sep"></div>
+      <!-- Runtime estimate -->
+      <div class="topbar-stat">
+        <div class="topbar-stat-label">Runtime</div>
+        <div class="topbar-stat-val" id="battery-time" style="color:var(--green);">—</div>
+      </div>
+      <!-- Hidden elements kept so battery_monitor.js doesn't throw errors -->
+      <span id="battery-current" style="display:none;"></span>
+      <span id="battery-voltage" style="display:none;"></span>
+      <div class="topbar-sep"></div>
+      <div class="topbar-sep"></div>
+      <!-- Start/Stop Robot -->
+      <button id="btn-start-robot" onclick="toggleRobot()"
+        style="padding:6px 14px;font-size:12px;font-weight:700;border-radius:6px;
+               border:1px solid #22c55e;background:rgba(34,197,94,0.12);color:#22c55e;
+               cursor:pointer;font-family:var(--font-head);letter-spacing:1px;">
+        ▶ START ROBOT
+      </button>
+      <div class="topbar-sep"></div>
+      <!-- Theme toggle -->
+      <button id="btn-theme" onclick="toggleTheme()" title="Toggle theme"
+        style="width:32px;height:32px;border-radius:6px;border:1px solid var(--border);
+               background:var(--panel2);color:var(--text);font-size:16px;cursor:pointer;">☀</button>
+      <div class="topbar-sep"></div>
+      <span id="ros-status" style="color:var(--yellow);font-size:14px;font-weight:600;">● CONNECTING</span>
+      <button class="btn-logout" onclick="doLogout()">TERMINATE SESSION</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="app-content">
+
+    <!-- ── HOME VIEW ──────────────────────────────────────── -->
+    <div id="view-home" class="view active">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;gap:20px;">
+        <div class="home-title">Select Operating Mode</div>
+        <div class="mode-tiles">
+          <div class="mode-tile" style="--tile-color:#0ea5e9" onclick="switchView('mapping')">
+            <div class="tile-icon">🗺</div>
+            <div class="tile-label">MAPPING</div>
+            <div class="tile-desc">Build environment map using SLAM</div>
+          </div>
+          <div class="mode-tile" style="--tile-color:#22c55e" onclick="switchView('localization')">
+            <div class="tile-icon">📍</div>
+            <div class="tile-label">LOCALIZATION</div>
+            <div class="tile-desc">Navigate using a saved map</div>
+          </div>
+          <div class="mode-tile" style="--tile-color:#f97316" onclick="switchView('custom')">
+            <div class="tile-icon">⚙</div>
+            <div class="tile-label">CUSTOM APP</div>
+            <div class="tile-desc">Run Custom Programs</div>
+          </div>
+        </div>
+        <!-- Motion controls always visible on home -->
+        <div style="display:flex;gap:32px;align-items:flex-start;margin-top:8px;">
+          <!-- D-Pad -->
+          <div style="text-align:center;">
+            <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">MOTION CONTROL</div>
+            <div class="dpad">
+              <div></div>
+              <button class="dpad-btn" onmousedown="forward()" onmouseup="releaseButton()" ontouchstart="forward()" ontouchend="releaseButton()">▲</button>
+              <div></div>
+              <button class="dpad-btn" onmousedown="left()" onmouseup="releaseButton()" ontouchstart="left()" ontouchend="releaseButton()">◀</button>
+              <button class="dpad-btn stop-btn" onclick="stopHard()">■</button>
+              <button class="dpad-btn" onmousedown="right()" onmouseup="releaseButton()" ontouchstart="right()" ontouchend="releaseButton()">▶</button>
+              <div></div>
+              <button class="dpad-btn" onmousedown="back()" onmouseup="releaseButton()" ontouchstart="back()" ontouchend="releaseButton()">▼</button>
+              <div></div>
+            </div>
+          </div>
+          <!-- Speed -->
+          <div style="width:200px;">
+            <div style="font-size:11px;letter-spacing:2px;color:var(--muted);margin-bottom:12px;font-family:var(--font-head);">SPEED</div>
+            <div class="speed-display"><span>DRIVING SPEED</span><span class="speed-val" id="home-spd-val">0.15 m/s</span></div>
+            <input type="range" id="home-spd-range" min="0.05" max="0.3" step="0.01" value="0.15"
+              oninput="updateSpeed(this.value, 'home-spd-val')">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MAPPING VIEW ───────────────────────────────────── -->
+    <div id="view-mapping" class="view">
+      <div class="sidebar" id="sidebar-mapping">
+        <div class="sidebar-resizer" id="resizer-mapping"></div>
+        <button class="sidebar-toggle" id="toggle-mapping" onclick="toggleSidebar('mapping')" title="Toggle sidebar">◀</button>
+        <div class="sec-label">Mapping</div>
+        <div class="sidebar-block">
+          <button class="btn-primary" id="btn-start-mapping" onclick="startMappingFlow()">▶ Start Mapping</button>
+          <button class="btn-danger"  id="btn-stop-mapping"  onclick="stopMappingFlow()" style="display:none;">⏹ Stop Mapping</button>
+          <button class="btn-warn"    id="btn-edit-map"      onclick="openMapEditor()" style="margin-bottom:8px;" type="button">✏️ Edit Map</button>
+        </div>
+
+        <!-- Save map — shown after stop -->
+        <div id="save-map-block" style="display:none;">
+          <div class="sec-label">Save Map</div>
+          <div class="sidebar-block">
+            <input type="text" id="mapname" placeholder="Map name (e.g. warehouse_a)">
+            <button class="btn-success" onclick="saveMapAndReturn()">💾 Save Map</button>
+            <button class="btn-danger"  onclick="discardMapAndReturn()">🗑 Discard Map</button>
+          </div>
+        </div>
+
+        <div class="sec-label">REMOTE CONTROL</div>
+        <div class="sidebar-block">
+          <div style="text-align:center; margin-bottom:10px;">
+            <div class="dpad">
+              <div></div>
+              <button class="dpad-btn" onmousedown="forward()" onmouseup="releaseButton()" ontouchstart="forward();event.preventDefault()" ontouchend="releaseButton()">▲</button>
+              <div></div>
+              <button class="dpad-btn" onmousedown="left()" onmouseup="releaseButton()" ontouchstart="left();event.preventDefault()" ontouchend="releaseButton()">◀</button>
+              <button class="dpad-btn stop-btn" onclick="stopHard()">■</button>
+              <button class="dpad-btn" onmousedown="right()" onmouseup="releaseButton()" ontouchstart="right();event.preventDefault()" ontouchend="releaseButton()">▶</button>
+              <div></div>
+              <button class="dpad-btn" onmousedown="back()" onmouseup="releaseButton()" ontouchstart="back();event.preventDefault()" ontouchend="releaseButton()">▼</button>
+              <div></div>
+            </div>
+          </div>
+          <div class="speed-display"><span>DRIVING SPEED</span><span class="speed-val" id="map-spd-val">0.15 m/s</span></div>
+          <input type="range" id="map-spd-range" min="0.05" max="0.3" step="0.01" value="0.15"
+            oninput="updateSpeed(this.value,'map-spd-val')">
+        </div>
+
+        <div class="sec-label">Keyboard</div>
+        <div class="sidebar-block" style="color:var(--muted);font-size:11px;line-height:1.8;">
+          W/↑ Forward &nbsp; S/↓ Back<br>
+          A/← Left &nbsp;&nbsp;&nbsp; D/→ Right<br>
+          Space — Stop
+        </div>
+      </div>
+
+      <div class="main-area">
+        <!-- Map placeholder before mapping starts -->
+        <div id="map-placeholder" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--muted);">
+          <div style="font-size:48px;">🗺</div>
+          <div style="font-family:var(--font-head);font-size:12px;letter-spacing:3px;">PRESS START MAPPING</div>
+          <div style="font-size:12px;">Live map will appear here</div>
+        </div>
+        <div id="mapContainer" style="flex:1;min-height:0;display:none;position:relative;overflow:hidden;background:#020912;">
+          <div id="map" style="position:absolute;inset:0;"></div>
+          <img id="mapImage" style="display:none;">
+          <div id="pose-banner"><span>🎯</span><span id="pose-coords"></span></div>
+          <div id="map-toolbar" style="position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:6px;z-index:10;">
+            <button onclick="fitMap()" title="Fit map to screen" style="width:36px;height:36px;background:rgba(2,9,24,0.92);border:1.5px solid rgba(255,255,255,0.45);border-radius:7px;color:#e2e8f0;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.5);">⊞</button>
+            <button onclick="zoomMapIn()" title="Zoom in" style="width:36px;height:36px;background:rgba(2,9,24,0.92);border:1.5px solid rgba(255,255,255,0.45);border-radius:7px;color:#e2e8f0;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.5);">+</button>
+            <button onclick="zoomMapOut()" title="Zoom out" style="width:36px;height:36px;background:rgba(2,9,24,0.92);border:1.5px solid rgba(255,255,255,0.45);border-radius:7px;color:#e2e8f0;font-size:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.5);">−</button>
+            <button onclick="centerOnRobot()" title="Center on robot" style="width:36px;height:36px;background:rgba(2,9,24,0.92);border:1.5px solid rgba(14,165,233,0.7);border-radius:7px;color:#0ea5e9;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.5);">◎</button>
+          </div>
+          <div id="robot-pos-hud" style="position:absolute;bottom:8px;left:8px;background:rgba(10,22,40,0.85);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--muted);z-index:10;">
+            Robot: <span id="robot-pos-x">—</span>, <span id="robot-pos-y">—</span> m
+          </div>
+        </div>
+        <!-- Bottom camera strip -->
+        <div class="bottom-resizer" id="resizer-bottom-mapping"></div>
+        <div class="bottom-bar" id="bottom-bar-mapping">
+          <div class="camera-panel">
+            <img id="camera-feed" src="" alt="Camera">
+            <div class="camera-label">CAMERA</div>
+          </div>
+          <div class="status-panel">
+            <div class="status-row">
+              <div class="status-item"><label>Mode</label><span id="status-mode" style="color:var(--accent);">MAPPING</span></div>
+              <div class="status-item"><label>ROS</label><span id="status-ros-m">—</span></div>
+              <div class="status-item"><label>Map Size</label><span id="status-map-size">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOCALIZATION VIEW ──────────────────────────────── -->
+    <div id="view-localization" class="view">
+      <div class="sidebar" id="sidebar-localization">
+        <div class="sidebar-resizer" id="resizer-localization"></div>
+        <button class="sidebar-toggle" id="toggle-localization" onclick="toggleSidebar('localization')" title="Toggle sidebar">◀</button>
+
+        <!-- Step 1: select map -->
+        <div id="loc-step-select">
+          <div class="sec-label">1 — Select Map</div>
+          <div class="sidebar-block">
+            <select id="mapSelect"></select>
+            <button class="btn-sm" onclick="loadMapList()">↻ Refresh</button>
+            <button class="btn" onclick="selectMap()">👁 VIEW MAP</button>
+            <button class="btn-primary" onclick="confirmAndLocalize()">✅ USE THIS MAP</button>
+          </div>
+        </div>
+
+        <!-- Step 2: localization controls (shown after start) -->
+        <div id="loc-step-controls" style="display:none;">
+          <div class="sec-label">2 — Localize</div>
+          <div class="sidebar-block">
+            <button class="btn-pose" id="btn-pose" onclick="enablePoseEstimate()" disabled>🎯 FIX ROBOT POSITION</button>
+            <button class="btn-goal" id="btn-goal" onclick="enableGoalPose()" disabled>🟢 GO TO POINT</button>
+            <button class="btn-home" id="btn-home" onclick="goHome()" disabled>🏠 RETURN TO BASE</button>
+            <button class="btn-warn" id="btn-cancel-goal" onclick="cancelGoal()" disabled>⛔ STOP MOVING</button>
+            <button id="btn-dock" onclick="toggleDock()"
+              style="display:block;width:100%;padding:10px 14px;font-weight:600;margin-bottom:5px;
+                     border-radius:7px;cursor:pointer;transition:all 0.15s;font-family:var(--font-body);font-size:13px;
+                     background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.4);color:var(--green);">
+              🔌 DOCK
+            </button>
+            <button class="btn-danger" onclick="stopLocalizationFlow()">⏹ STOP LOCALIZATION</button>
+          </div>
+
+          <div class="sec-label">LOCATION</div>
+          <div class="sidebar-block">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+              Robot: <span id="get-loc-x" style="color:var(--accent);">—</span>,
+                     <span id="get-loc-y" style="color:var(--accent);">—</span> m
+            </div>
+            <input type="text" id="get-loc-name" placeholder="WAYPOINT NAME (optional)"
+                   style="margin-bottom:6px;">
+            <button class="btn-success" id="btn-get-location" onclick="getLocationAsWaypoint()"
+                    disabled style="font-size:13px;padding:10px 14px;">
+              📍 GET LOCATION → SAVE THIS SPOT
+            </button>
+          </div>
+
+          <div class="sec-label">SAVED PLACES</div>
+          <div class="sidebar-block">
+            <input type="text" id="wp-name" placeholder="WAYPOINT NAME">
+            <button class="btn-wp" id="btn-add-wp" onclick="enableWaypointMode()">📍 SAVE THIS SPOT</button>
+            <div id="wp-list"></div>
+            <button class="btn-success" id="btn-start-mission" onclick="startMission()" disabled>▶ RUN MISSION</button>
+            <button class="btn-warn"   id="btn-stop-mission"  onclick="stopMission()"  style="display:none;">⏹ Stop Mission</button>
+          </div>
+        </div>
+
+        <div class="sec-label">REMOTE CONTROL</div>
+        <div class="sidebar-block">
+
+          <div style="text-align:center; margin-bottom:14px;">
+            <div class="dpad">
+              <div></div>
+              <button class="dpad-btn" onmousedown="forward()" onmouseup="releaseButton()" ontouchstart="forward()" ontouchend="releaseButton()">▲</button>
+              <div></div>
+              <button class="dpad-btn" onmousedown="left()" onmouseup="releaseButton()" ontouchstart="left()" ontouchend="releaseButton()">◀</button>
+              <button class="dpad-btn stop-btn" onclick="stopHard()">■</button>
+              <button class="dpad-btn" onmousedown="right()" onmouseup="releaseButton()" ontouchstart="right()" ontouchend="releaseButton()">▶</button>
+              <div></div>
+              <button class="dpad-btn" onmousedown="back()" onmouseup="releaseButton()" ontouchstart="back()" ontouchend="releaseButton()">▼</button>
+              <div></div>
+            </div>
+          </div>
+          <div class="speed-display"><span>DRIVING SPEED</span><span class="speed-val" id="loc-spd-val">0.15 m/s</span></div>
+          <input type="range" id="loc-spd-range" min="0.05" max="0.3" step="0.01" value="0.15"
+            oninput="updateSpeed(this.value, 'loc-spd-val')">
+        </div>
+      </div>
+
+      <div class="main-area">
+        <!-- Preview area — shows image before localization starts -->
+        <div id="loc-preview-area" style="flex:1;min-height:0;position:relative;overflow:hidden;background:#020912;">
+          <div id="loc-empty-msg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--muted);">
+            <div style="font-size:64px;">📍</div>
+            <div style="font-family:var(--font-head);font-size:14px;letter-spacing:3px;">SELECT & PREVIEW MAP</div>
+            <div style="font-size:14px;">Select a saved map then click VIEW MAP</div>
+          </div>
+          <img id="mapPreviewImage" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:20px;box-sizing:border-box;" alt="Map Preview">
+          <!-- mapContainer anchor for localization — mapContainer floats here when active -->
+          <div id="map-anchor-localization" style="position:absolute;inset:0;"></div>
+        </div>
+        <div class="bottom-resizer" id="resizer-bottom-loc"></div>
+        <div class="bottom-bar" id="bottom-bar-loc">
+          <div class="camera-panel">
+            <img id="camera-feed-loc" src="" alt="Camera">
+            <div class="camera-label">CAMERA</div>
+          </div>
+          <div class="status-panel">
+            <div class="status-row" style="margin-bottom:8px;">
+              <div class="status-item"><label>Mode</label><span style="color:var(--green);">LOCALIZATION</span></div>
+              <div class="status-item"><label>STATUS</label><span id="loc-pose-status">No</span></div>
+              <div class="status-item"><label>Map</label><span id="loc-map-name">—</span></div>
+            </div>
+            <!-- Map Layers controls in bottom panel -->
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--muted);">🗺 SHOW ROUTE</span>
+                <label class="toggle-switch" style="transform:scale(0.85);">
+                  <input type="checkbox" id="toggle-path" checked onchange="togglePath(this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--muted);">🟥 DANGER ZONE</span>
+                <label class="toggle-switch" style="transform:scale(0.85);">
+                  <input type="checkbox" id="toggle-costmap" onchange="toggleCostmap(this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <span style="width:8px;height:8px;background:rgba(50,50,50,0.9);display:inline-block;border-radius:2px;"></span>
+                <span style="font-size:11px;color:var(--muted);">Lethal</span>
+                <span style="width:8px;height:8px;background:rgba(140,140,140,0.7);display:inline-block;border-radius:2px;"></span>
+                <span style="font-size:11px;color:var(--muted);">Inflation</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CUSTOM APP VIEW ────────────────────────────────── -->
+    <div id="view-custom" class="view">
+      <div style="padding:40px;width:100%;">
+        <div class="custom-title">CUSTOM APPLICATIONS</div>
+        <div style="color:var(--muted);font-size:13px;margin:8px 0 28px;">Select an automation module</div>
+        <div class="custom-tiles">
+          <div class="custom-tile" onclick="switchView('delivery')">
+            <div class="tile-icon">🚚</div>
+            <div class="tile-label">DELIVERY</div>
+            <div class="tile-desc" style="font-size:11px;color:var(--muted);text-align:center;">Delivery</div>
+          </div>
+          <div class="custom-tile" onclick="openPrograms()">
+            <div class="tile-icon">📜</div>
+            <div class="tile-label">RUN PROGRAM</div>
+            <div class="tile-desc" style="font-size:11px;color:var(--muted);text-align:center;">Execute Python scripts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PROGRAMS VIEW ─────────────────────────────────── -->
+    <div id="view-programs" class="view">
+      <div style="display:flex;height:100%;min-height:0;">
+        <div style="width:280px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);
+                    padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+          <div class="sec-label">Run Program</div>
+          <div class="sidebar-block">
+            <select id="programSelect" style="width:100%;margin-bottom:8px;">
+              <option value="">— select program —</option>
+            </select>
+            <button class="btn-success" onclick="runProgram()" style="margin-bottom:6px;">▶ Run Program</button>
+            <button class="btn-danger"  onclick="stopProgramAndGoHome()">⏹ Stop + Go Home</button>
+          </div>
+          <div class="sidebar-block">
+            <div style="font-size:12px;color:var(--muted);">Status: <span id="program-status" style="color:var(--green);">Idle</span></div>
+          </div>
+          <button class="btn-warn" onclick="switchView('custom')" style="margin-top:auto;">← Back</button>
+        </div>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-direction:column;gap:12px;">
+          <div style="font-size:48px;">📜</div>
+          <div style="font-size:16px;">Select and run a Python program</div>
+          <div style="font-size:12px;">Programs must be in the <code>programs/</code> folder</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DELIVERY VIEW ──────────────────────────────────── -->
+    <div id="view-delivery" class="view">
+      <div class="sidebar" id="sidebar-delivery">
+        <div class="sidebar-resizer" id="resizer-delivery"></div>
+        <button class="sidebar-toggle" id="toggle-delivery" onclick="toggleSidebar('delivery')" title="Toggle sidebar">◀</button>
+        <div class="sec-label">Delivery Mode</div>
+        <div class="sidebar-block">
+          <!-- Localization gate warning -->
+          <div id="deliveryLocGate" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:#f87171;text-align:center;">
+            ⚠ Localization required before starting delivery. Please complete localization first.
+          </div>
+          <!-- Delivery Mode On toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:10px;background:var(--panel);border:1px solid var(--border);border-radius:8px;">
+            <span style="font-size:12px;color:var(--text);font-weight:600;">Delivery Mode On</span>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+              <input type="checkbox" id="deliveryModeToggle" onchange="onDeliveryModeToggle(this.checked)" style="opacity:0;width:0;height:0;position:absolute;">
+              <span id="deliveryModeSlider" style="position:absolute;cursor:pointer;inset:0;background:#374151;border-radius:24px;transition:.3s;"></span>
+              <span id="deliveryModeKnob" style="position:absolute;height:18px;width:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.3s;pointer-events:none;"></span>
+            </label>
+          </div>
+          <button class="btn-primary"  id="deliveryStartBtn"   onclick="startDelivery()" disabled style="margin-bottom:6px;">▶ Start Delivery</button>
+          <button class="btn-danger"   id="deliveryStopBtn"    onclick="stopDelivery()" disabled>⏹ Stop</button>
+        </div>
+
+        <div class="sec-label">Weight</div>
+        <div class="sidebar-block">
+          <div class="delivery-status-box">
+            <div class="delivery-state" id="deliveryState">Node not running</div>
+            <div class="delivery-weight-track">
+              <div class="delivery-weight-fill" id="deliveryWeightBar"></div>
+            </div>
+            <div class="delivery-info-row">
+              <span>⚖ <span id="deliveryWeight">— kg</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-block">
+          <button class="btn-sm" onclick="switchView('custom')">← Back to Custom Apps</button>
+        </div>
+      </div>
+
+      <div class="main-area">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--muted);padding:40px;">
+          <div style="font-size:56px;">🚚</div>
+          <div style="font-family:var(--font-head);font-size:14px;letter-spacing:3px;color:var(--accent2);">DELIVERY MODE</div>
+          <div style="font-size:12px;max-width:400px;text-align:center;line-height:1.8;">
+            Uses load cell to detect cargo, navigates to delivery station via Nav2,
+            then docks precisely using AprilTag visual servoing at both stations.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;width:500px;">
+            <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;">
+              <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">LOADING STATION</div>
+              <div style="font-size:22px;margin-bottom:6px;">📦</div>
+              <div style="font-size:11px;color:var(--text);">AprilTag ID: <span id="del-load-tag" style="color:var(--accent);">—</span></div>
+            </div>
+            <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;">
+              <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">DELIVERY STATION</div>
+              <div style="font-size:22px;margin-bottom:6px;">🏭</div>
+              <div style="font-size:11px;color:var(--text);">AprilTag ID: <span id="del-delivery-tag" style="color:var(--accent2);">—</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-resizer" id="resizer-bottom-del"></div>
+        <div class="bottom-bar" id="bottom-bar-del">
+          <div class="camera-panel">
+            <img id="camera-feed-del" src="" alt="Camera">
+            <div class="camera-label">CAMERA</div>
+          </div>
+          <div class="status-panel">
+            <div class="status-row">
+              <div class="status-item"><label>State</label><span id="del-state-badge" style="color:var(--accent2);">IDLE</span></div>
+              <div class="status-item"><label>Weight</label><span id="del-weight-badge">— kg</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- app-content -->
+</div><!-- screen-app -->
+
+<div id="toast" class="toast"></div>
+<!-- Global speed state inputs — always present, updated by any speed slider -->
+<input type="hidden" id="speed-linear"  value="0.4">
+<input type="hidden" id="speed-angular" value="0.8">
+
+<!-- ═══════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════ -->
+<script src="config/robot_config.js"></script>
+<script src="libs/eventemitter2.min.js"></script>
+<script src="libs/easeljs.min.js"></script>
+<script src="libs/rosbridge_shim.js"></script>
+<script src="libs/roslib.min.js"></script>
+<script src="libs/ros2d.min.js"></script>
+<script src="libs/nav2d.js"></script>
+<script src="libs/nav2d-old.js"></script>
+<script src="js/app.js"></script>
+<script src="js/mapping.js"></script>
+<script src="js/mission.js"></script>
+<script src="js/localization.js"></script>
+<script src="js/teleop.js"></script>
+<script src="js/run_program.js"></script>
+<script src="js/battery_monitor.js"></script>
+<script src="js/delivery.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   PAGE CONTROLLER
+════════════════════════════════════════════════════════ */
+
+/* Single speed slider — sets both linear and angular proportionally */
+function updateSpeed(val, displayId) {
+  val = parseFloat(val);
+  var linEl = document.getElementById('speed-linear');
+  var angEl = document.getElementById('speed-angular');
+  var dispEl = document.getElementById(displayId);
+  if (linEl)  linEl.value  = val;
+  /* angular = linear * 1.5 (reduced for smoother turning) */
+  if (angEl)  angEl.value  = Math.min(1.0, val * 1.5).toFixed(2);
+  if (dispEl) dispEl.textContent = val.toFixed(2) + ' m/s';
+}
+
+/* Init all speed sliders to 0.15 m/s */
+(function() {
+  ['home-spd-range','map-spd-range','loc-spd-range','del-spd-range'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { updateSpeed(this.value, this.id.replace('-range','-val')); });
+  });
+  /* Set initial values */
+  updateSpeed(0.15, 'home-spd-val');
+  updateSpeed(0.15, 'map-spd-val');
+  updateSpeed(0.15, 'loc-spd-val');
+  updateSpeed(0.15, 'del-spd-val');
+})();
+
+/* ── LOGIN ────────────────────────────────────────────── */
+/* Enter on either field triggers login */
+document.getElementById('login-user').addEventListener('keydown', function(e){
+  if(e.key==='Enter') document.getElementById('login-pass').focus();
+});
+document.getElementById('login-pass').addEventListener('keydown', function(e){
+  if(e.key==='Enter') doLogin();
+});
+/* Auto-focus username on page load */
+setTimeout(function(){ document.getElementById('login-user').focus(); }, 200);
+
+function doLogin() {
+  var u   = document.getElementById('login-user').value.trim();
+  var p   = document.getElementById('login-pass').value;
+  var btn = document.querySelector('.btn-login');
+  var err = document.getElementById('login-error');
+
+  if (!u || !p) {
+    err.textContent = '⚠ Please enter username and password';
+    err.style.display = 'block';
+    return;
+  }
+
+  /* Show loading state */
+  btn.textContent = '...';
+  btn.disabled = true;
+
+  /* Small delay for UX feel, then validate */
+  setTimeout(function() {
+    btn.textContent = 'AUTHENTICATE SYSTEM';
+    btn.disabled = false;
+
+    if (u === RobotConfig.auth.username && p === RobotConfig.auth.password) {
+      err.style.display = 'none';
+      document.getElementById('screen-login').classList.remove('active');
+      document.getElementById('screen-app').classList.add('active');
+      /* Camera feeds — set immediately on login */
+      _applyCameraFeeds();
+    } else {
+      err.textContent = '⚠ Invalid username or password';
+      err.style.display = 'block';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-pass').focus();
+      /* Shake animation */
+      var box = document.querySelector('.login-box');
+      box.style.animation = 'none';
+      box.offsetHeight;  /* reflow */
+      box.style.animation = 'loginShake 0.4s ease';
+    }
+  }, 300);
+}
+
+function doLogout() {
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  switchView('home');
+}
+
+/* ── CAMERA FEED ──────────────────────────────────────────
+   web_video_server URL format: http://HOST:PORT/stream?topic=TOPIC&type=mjpeg
+   Do NOT encodeURIComponent the topic — server needs literal slashes.
+   ─────────────────────────────────────────────────────────── */
+function _buildCamUrl() {
+  var host  = window.location.hostname || 'localhost';
+  var port  = (RobotConfig.ports && RobotConfig.ports.camera) || 8080;
+  var topic = (RobotConfig.topics && RobotConfig.topics.camera) || '/camera/image_raw';
+  return 'http://' + host + ':' + port +
+         '/stream?topic=' + topic + '&type=mjpeg&quality=70&width=640&height=480';
+}
+
+function _applyCameraFeeds() {
+  var url = _buildCamUrl();
+  ['camera-feed', 'camera-feed-loc', 'camera-feed-del'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.src = '';   /* force reload */
+    el.onerror = function() {
+      var panel = el.closest ? el.closest('.camera-panel') : el.parentElement;
+      if (!panel) return;
+      var ov = panel.querySelector('.cam-error-ov');
+      if (!ov) {
+        ov = document.createElement('div');
+        ov.className = 'cam-error-ov';
+        ov.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;' +
+          'align-items:center;justify-content:center;background:#0a0a0a;' +
+          'color:#555;font-size:11px;gap:5px;pointer-events:none;z-index:2;';
+        ov.innerHTML = '<span style="font-size:22px;">📷</span>' +
+          '<span>Camera offline</span>' +
+          '<span style="font-size:9px;color:#333;font-family:monospace;">' +
+          (topic) + '</span>';
+        panel.appendChild(ov);
+      }
+      ov.style.display = 'flex';
+      setTimeout(function() {
+        if (ov) ov.style.display = 'none';
+        el.src = url + '&_t=' + Date.now();
+      }, 5000);
+    };
+    el.onload = function() {
+      var panel = el.closest ? el.closest('.camera-panel') : el.parentElement;
+      if (!panel) return;
+      var ov = panel.querySelector('.cam-error-ov');
+      if (ov) ov.style.display = 'none';
+    };
+    setTimeout(function() { el.src = url; }, 50);
+  });
+}
+
+/* ── VIEW SWITCHER ────────────────────────────────────── */
+var _currentView = 'home';
+function switchView(name) {
+  /* Stop delivery poll if leaving delivery */
+  if (_currentView === 'delivery' && name !== 'delivery') {
+    if (typeof _stopDeliveryPoll === 'function') _stopDeliveryPoll();
+  }
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  var v = document.getElementById('view-' + name);
+  if (v) v.classList.add('active');
+  var t = document.getElementById('tab-' + name);
+  if (t) t.classList.add('active');
+  /* special case: home tab */
+  if (name === 'home') document.querySelector('.tab-btn').classList.add('active');
+  _currentView = name;
+  /* Init delivery view when navigating to it */
+  if (name === 'delivery' && typeof initDeliveryView === 'function') initDeliveryView();
+  /* Trigger viewer resize after view switch so canvas fills new size */
+  setTimeout(function() { if (typeof resizeViewer === 'function') resizeViewer(); }, 30);
+}
+
+/* ── MAPPING FLOW ─────────────────────────────────────── */
+function startMappingFlow() {
+  if (!_robotRunning) {
+    showToast('⚠ Start the robot first (▶ START ROBOT)', 'error');
+    return;
+  }
+  document.getElementById('map-placeholder').style.display   = 'none';
+  document.getElementById('mapContainer').style.display      = 'block';
+  document.getElementById('map').style.display               = 'block';
+  document.getElementById('btn-start-mapping').style.display = 'none';
+  document.getElementById('btn-stop-mapping').style.display  = 'block';
+  document.getElementById('save-map-block').style.display    = 'none';
+  /* Resize AFTER container is visible so canvas gets correct dimensions */
+  setTimeout(function() {
+    if (typeof resizeViewer === 'function') resizeViewer();
+    startMapping();    /* mapping.js — starts SLAM, shows robot */
+    startMapPolling(); /* app.js — begins /map_meta polling */
+  }, 30);
+}
+
+function stopMappingFlow() {
+  document.getElementById('btn-stop-mapping').style.display = 'none';
+  document.getElementById('save-map-block').style.display   = 'block';
+  stopMapping(); /* mapping.js */
+  /* Keep polling alive so user sees the final map before saving */
+}
+
+/* saveMapAndReturn() defined in mapping.js */
+
+/* ── LOCALIZATION FLOW ────────────────────────────────── */
+/* ── _restoreLocalizationUI ──────────────────────────────────────────────
+   Restores the localization panel to its active state (map canvas visible,
+   controls shown) WITHOUT touching Nav2 or the ROS backend. Called when
+   the page is refreshed / user logs in while a mission is already running
+   so we must never call startLocalization() (it would kill the mission).
+   ─────────────────────────────────────────────────────────────────────── */
+function _restoreLocalizationUI(mapName) {
+  /* Pre-select the saved map in the dropdown if provided */
+  if (mapName) {
+    var sel = document.getElementById('mapSelect');
+    if (sel) sel.value = mapName;
+  }
+
+  /* Update the map name label shown in the controls header */
+  var locMapName = document.getElementById('loc-map-name');
+  if (locMapName) locMapName.textContent = mapName || '';
+
+  /* Hide the map preview image placeholder */
+  var previewImg = document.getElementById('mapPreviewImage');
+  if (previewImg) previewImg.style.display = 'none';
+  var emptyMsg = document.getElementById('loc-empty-msg');
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  /* Move mapContainer into the localization preview area (same as confirmAndLocalize) */
+  var mc = document.getElementById('mapContainer');
+  var pa = document.getElementById('loc-preview-area');
+  if (mc && pa) {
+    mc.style.removeProperty('display');
+    mc.style.position = 'absolute';
+    mc.style.inset    = '0';
+    mc.style.width    = '';
+    mc.style.height   = '';
+    mc.style.zIndex   = '5';
+    pa.appendChild(mc);
+    mc.style.display  = 'block';
+  }
+  var mapEl = document.getElementById('map');
+  if (mapEl) mapEl.style.display = 'block';
+
+  /* Show controls panel, hide the map-select step */
+  document.getElementById('loc-step-select').style.display   = 'none';
+  document.getElementById('loc-step-controls').style.display = 'block';
+
+  /* Set mapMode so AMCL / laser subscribers know we are in localization */
+  mapMode = 'localization';
+
+  /* Start polling for map tiles so the background map renders */
+  if (typeof startMapPolling === 'function') startMapPolling();
+
+  /* Restore saved AMCL pose on the canvas so the robot marker is visible */
+  var saved = (typeof _loadLastPose === 'function') ? _loadLastPose() : null;
+  if (saved && typeof robotLayer !== 'undefined') {
+    robotLayer.x        =  saved.x;
+    robotLayer.y        = -saved.y;
+    robotLayer.rotation = -saved.yaw * (180 / Math.PI);
+    if (typeof _robotYawRad !== 'undefined') _robotYawRad = saved.yaw;
+    robotLayer.visible  = true;
+    poseHasBeenSet      = true;
+    if (typeof laserLayer !== 'undefined') laserLayer.visible = true;
+    if (typeof updateRobotPosHUD === 'function') updateRobotPosHUD(saved.x, saved.y);
+    if (typeof stage !== 'undefined') stage.update();
+  }
+
+  /* Enable nav / mission buttons that depend on poseHasBeenSet */
+  var btnPose = document.getElementById('btn-pose');
+  if (btnPose) { btnPose.disabled = false; btnPose.classList.add('btn-pose-ready'); }
+  var btnGoal = document.getElementById('btn-goal');
+  if (btnGoal) { btnGoal.disabled = false; btnGoal.classList.add('btn-goal-ready'); }
+  var btnHome = document.getElementById('btn-home');
+  if (btnHome) btnHome.disabled = false;
+  var btnGetLoc = document.getElementById('btn-get-location');
+  if (btnGetLoc) btnGetLoc.disabled = false;
+  if (typeof enableMissionButtons === 'function') enableMissionButtons();
+
+  /* Resize canvas after DOM settles, then center on robot */
+  setTimeout(function() {
+    if (typeof resizeViewer === 'function') resizeViewer();
+    if (typeof centerOnRobot === 'function') centerOnRobot();
+    if (typeof redrawOverlay === 'function') redrawOverlay();
+  }, 80);
+}
+
+function confirmAndLocalize() {
+  if (!_robotRunning) {
+    showToast('⚠ Start the robot first (▶ START ROBOT)', 'error');
+    return;
+  }
+  var map = document.getElementById('mapSelect').value;
+  if (!map) { showToast('⚠ Select a map first', 'error'); return; }
+  document.getElementById('loc-map-name').textContent = map;
+
+  var previewImg = document.getElementById('mapPreviewImage');
+  if (previewImg) previewImg.style.display = 'none';
+  var emptyMsg = document.getElementById('loc-empty-msg');
+  if (emptyMsg) emptyMsg.style.display = 'none';
+
+  /* Move mapContainer into localization preview area */
+  var mc = document.getElementById('mapContainer');
+  var pa = document.getElementById('loc-preview-area');
+  mc.style.removeProperty('display');
+  mc.style.position = 'absolute';
+  mc.style.inset    = '0';
+  mc.style.width    = '';
+  mc.style.height   = '';
+  mc.style.zIndex   = '5';
+  pa.appendChild(mc);
+  mc.style.display = 'block';
+  document.getElementById('map').style.display = 'block';
+  setTimeout(function() { if (typeof resizeViewer === 'function') resizeViewer(); }, 30);
+
+  document.getElementById('loc-step-select').style.display   = 'none';
+  document.getElementById('loc-step-controls').style.display = 'block';
+
+  /* Resize viewer AFTER DOM layout settles, then start localization */
+  setTimeout(function() {
+    if (typeof resizeViewer === 'function') resizeViewer();
+    startLocalization(); /* localization.js */
+    startMapPolling();   /* app.js */
+    /* Persist localization state so page refresh restores it */
+    var mapName = document.getElementById('mapSelect').value;
+    localStorage.setItem('robomuse_loc_active', '1');
+    localStorage.setItem('robomuse_loc_map', mapName);
+  }, 80);
+}
+
+function stopLocalizationFlow() {
+  /* Reset ALL state so mapping can start fresh immediately */
+  if (typeof stopMapPolling    === 'function') stopMapPolling();
+  if (typeof resetMapFit       === 'function') resetMapFit();
+  if (typeof clearScan         === 'function') clearScan();
+  if (typeof clearCostmap      === 'function') clearCostmap();
+  if (typeof costmapVisible    !== 'undefined') costmapVisible = false;
+  var costToggle = document.getElementById('toggle-costmap');
+  if (costToggle) costToggle.checked = false;
+  poseHasBeenSet     = false;
+  mapMode            = 'idle';
+  _robotYawRad       = 0;
+  if (robotLayer) { robotLayer.visible = false; robotLayer.x = 0; robotLayer.y = 0; }
+  if (laserLayer) laserLayer.visible = false;
+  /* Immediately unlock mapping so user can start a new map */
+  if (typeof unlockMapping === 'function') unlockMapping();
+
+  /* Return mapContainer to mapping view */
+  var mc = document.getElementById('mapContainer');
+  var ma = document.querySelector('#view-mapping .main-area');
+  if (ma && mc) {
+    mc.style.position = '';
+    mc.style.inset    = '';
+    mc.style.zIndex   = '';
+    mc.style.display  = 'none';
+    var resizer = document.getElementById('resizer-bottom-mapping');
+    ma.insertBefore(mc, resizer || null);
+  }
+
+  /* Restore preview area */
+  var emptyMsg = document.getElementById('loc-empty-msg');
+  if (emptyMsg) emptyMsg.style.display = 'flex';
+  var previewImg = document.getElementById('mapPreviewImage');
+  if (previewImg) { previewImg.style.display = 'none'; previewImg.src = ''; }
+
+  /* Reset localization buttons */
+  var btnPose = document.getElementById('btn-pose');
+  var btnGoal = document.getElementById('btn-goal');
+  var btnHome = document.getElementById('btn-home');
+  if (btnPose) { btnPose.disabled = true; btnPose.classList.remove('btn-pose-ready'); }
+  if (btnGoal) { btnGoal.disabled = true; btnGoal.classList.remove('btn-goal-ready'); }
+  if (btnHome) btnHome.disabled = true;
+
+  document.getElementById('loc-step-select').style.display   = 'block';
+  document.getElementById('loc-step-controls').style.display = 'none';
+  document.getElementById('loc-pose-status').textContent = 'No';
+
+  fetch(SERVER_URL + '/stop_localization', {method:'POST'}).catch(()=>{});
+  /* Clear persisted localization state */
+  localStorage.removeItem('robomuse_loc_active');
+  localStorage.removeItem('robomuse_loc_map');
+  showToast('⏹ Localization stopped', 'info');
+  switchView('home');
+}
+
+/* ── Goal status monitoring — disable Cancel Goal when goal reached ── */
+(function() {
+  var _goalStatusTopic = null;
+  function _initGoalStatus() {
+    if (_goalStatusTopic) return;
+    _goalStatusTopic = new ROSLIB.Topic({
+      ros:         ros,
+      name:        '/navigate_to_pose/_action/status',
+      messageType: 'action_msgs/GoalStatusArray'
+    });
+    _goalStatusTopic.subscribe(function(msg) {
+      var statuses = msg.status_list || [];
+      /* STATUS_EXECUTING=2, STATUS_SUCCEEDED=4, STATUS_ABORTED=6, STATUS_CANCELED=5 */
+      var hasActive = statuses.some(function(s) { return s.status === 2 || s.status === 1; });
+      var btn = document.getElementById('btn-cancel-goal');
+      if (!btn) return;
+      if (!hasActive && statuses.length > 0) {
+        /* All goals finished — disable cancel */
+        btn.disabled = true;
+        var lastStatus = statuses[statuses.length - 1].status;
+        if (lastStatus === 4) showToast('✅ Goal reached!', 'success');
+      }
+    });
+  }
+  ros.on('connection', _initGoalStatus);
+  _initGoalStatus();
+})();
+
+/* update loc pose status badge — only relevant in localization mode */
+setInterval(function(){
+  var el = document.getElementById('loc-pose-status');
+  if (el) {
+    var active = (typeof mapMode !== 'undefined' && mapMode === 'localization' && poseHasBeenSet);
+    el.textContent = active ? 'Yes' : 'No';
+    el.style.color = active ? 'var(--green)' : 'var(--muted)';
+  }
+}, 500);
+
+/* ── CUSTOM / PROGRAMS ────────────────────────────────── */
+/* ── PROGRAMS VIEW ───────────────────────────────── */
+function openPrograms() {
+  switchView('programs');
+  if (typeof loadProgramList === 'function') loadProgramList();
+}
+
+/* ── START / STOP ROBOT ────────────────────────── */
+var _robotRunning = false;
+var _weightSuppressUntil = 0; /* epoch ms — weight reads return 0.0 until this time */
+function toggleRobot() {
+  var btn = document.getElementById('btn-start-robot');
+  if (!_robotRunning) {
+    fetch(SERVER_URL + '/start_robot', { method: 'POST' })
+      .then(r => r.json())
+      .then(function(d) {
+        _robotRunning = true;
+        btn.textContent = '⏹ STOP ROBOT';
+        btn.style.borderColor = '#ef4444';
+        btn.style.background  = 'rgba(239,68,68,0.12)';
+        btn.style.color       = '#ef4444';
+        /* Suppress noisy weight reading for 3 seconds after start */
+        _weightSuppressUntil = Date.now() + 3000;
+        var wEls = ['topbar-weight-val','deliveryWeight','del-weight-badge'];
+        wEls.forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent='0.00 kg'; });
+        var barEl = document.getElementById('deliveryWeightBar');
+        if (barEl) { barEl.style.width='0%'; }
+        /* Immediately reload camera feed when robot starts */
+        setTimeout(_applyCameraFeeds, 1500);  /* short delay for camera node to start */
+        showToast('🤖 Robot bringup started', 'success');
+      })
+      .catch(() => showToast('⚠ Failed to start robot', 'error'));
+  } else {
+    fetch(SERVER_URL + '/stop_robot', { method: 'POST' })
+      .then(r => r.json())
+      .then(function() {
+        _robotRunning = false;
+        btn.textContent = '▶ START ROBOT';
+        btn.style.borderColor = '#22c55e';
+        btn.style.background  = 'rgba(34,197,94,0.12)';
+        btn.style.color       = '#22c55e';
+        /* Clear camera feeds when robot stops */
+        ['camera-feed','camera-feed-loc','camera-feed-del'].forEach(function(id){
+          var el = document.getElementById(id);
+          if (el) el.src = '';
+        });
+        showToast('⏹ Robot bringup stopped', 'info');
+      })
+      .catch(() => showToast('⚠ Failed to stop robot', 'error'));
+  }
+}
+/* Poll robot status on load */
+(function checkRobotStatus() {
+  fetch(SERVER_URL + '/robot_status')
+    .then(r => r.json())
+    .then(function(d) {
+      if (d.running) {
+        _robotRunning = true;
+        var btn = document.getElementById('btn-start-robot');
+        if (btn) {
+          btn.textContent = '⏹ STOP ROBOT';
+          btn.style.borderColor = '#ef4444';
+          btn.style.background  = 'rgba(239,68,68,0.12)';
+          btn.style.color       = '#ef4444';
+        }
+      }
+    }).catch(function(){});
+})();
+
+/* ── THEME TOGGLE ──────────────────────────────── */
+var _darkTheme = true;
+function toggleTheme() {
+  _darkTheme = !_darkTheme;
+  document.body.classList.toggle('theme-light', !_darkTheme);
+  var btn = document.getElementById('btn-theme');
+  if (btn) btn.textContent = _darkTheme ? '☀' : '🌙';
+  localStorage.setItem('robomuse_theme', _darkTheme ? 'dark' : 'light');
+}
+/* Restore saved theme */
+(function() {
+  var saved = localStorage.getItem('robomuse_theme');
+  if (saved === 'light') {
+    _darkTheme = false;
+    document.body.classList.add('theme-light');
+    var btn = document.getElementById('btn-theme');
+    if (btn) btn.textContent = '🌙';
+  }
+})();
+
+/* ── DELIVERY TAG IDs from config ─────────────────────── */
+(function(){
+  var d = RobotConfig.delivery || {};
+  var ls = d.loading_station  || {};
+  var ds = d.delivery_station || {};
+  var el1 = document.getElementById('del-load-tag');
+  var el2 = document.getElementById('del-delivery-tag');
+  if(el1) el1.textContent = ls.tag_id !== undefined ? ls.tag_id : '—';
+  if(el2) el2.textContent = ds.tag_id !== undefined ? ds.tag_id : '—';
+})();
+
+/* ── SYNC BOTTOM BAR STATUS ───────────────────────────── */
+setInterval(function(){
+  var rosEl = document.getElementById('status-ros-m');
+  var statusEl = document.getElementById('ros-status');
+  if(rosEl && statusEl) rosEl.textContent = statusEl.textContent;
+}, 1000);
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   RESIZABLE SIDEBAR + BOTTOM BAR
+═══════════════════════════════════════════════════════════ */
+
+/* ── Sidebar drag-to-resize ─────────────────────────────── */
+function initSidebarResizer(resizerId, sidebarId, toggleId) {
+  var resizer = document.getElementById(resizerId);
+  var sidebar = document.getElementById(sidebarId);
+  var toggle  = document.getElementById(toggleId);
+  if (!resizer || !sidebar) return;
+
+  var startX, startW;
+
+  resizer.addEventListener('mousedown', function(e) {
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      var delta = e.clientX - startX;
+      var newW  = Math.max(180, Math.min(window.innerWidth * 0.6, startW + delta));
+      sidebar.style.width = newW + 'px';
+      sidebar.classList.remove('collapsed');
+      if (toggle) toggle.textContent = '◀';
+    }
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  /* Touch support */
+  resizer.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startW = sidebar.offsetWidth;
+    function onMove(e) {
+      var delta = e.touches[0].clientX - startX;
+      var newW  = Math.max(180, Math.min(window.innerWidth * 0.8, startW + delta));
+      sidebar.style.width = newW + 'px';
+      sidebar.classList.remove('collapsed');
+      if (toggle) toggle.textContent = '◀';
+    }
+    function onEnd() {
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+    document.addEventListener('touchmove', onMove, {passive: true});
+    document.addEventListener('touchend', onEnd);
+  }, {passive: true});
+}
+
+/* ── Toggle sidebar open/close ──────────────────────────── */
+function toggleSidebar(name) {
+  var sidebar = document.getElementById('sidebar-' + name);
+  var toggle  = document.getElementById('toggle-' + name);
+  if (!sidebar) return;
+  var collapsed = sidebar.classList.toggle('collapsed');
+  if (toggle) toggle.textContent = collapsed ? '▶' : '◀';
+}
+
+/* ── Bottom bar drag-to-resize ──────────────────────────── */
+function initBottomResizer(resizerId, barId) {
+  var resizer = document.getElementById(resizerId);
+  var bar     = document.getElementById(barId);
+  if (!resizer || !bar) return;
+
+  var startY, startH;
+
+  resizer.addEventListener('mousedown', function(e) {
+    startY = e.clientY;
+    startH = bar.offsetHeight;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      var delta = startY - e.clientY;   /* drag up = bigger */
+      var newH  = Math.max(80, Math.min(window.innerHeight * 0.5, startH + delta));
+      bar.style.height = newH + 'px';
+      /* Maintain 16:9 camera ratio */
+      var cam = bar.querySelector('.camera-panel');
+      if (cam) cam.style.width = Math.round(newH * 16 / 9) + 'px';
+    }
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  /* Touch support */
+  resizer.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    startH = bar.offsetHeight;
+    function onMove(e) {
+      var delta = startY - e.touches[0].clientY;
+      var newH  = Math.max(80, Math.min(window.innerHeight * 0.5, startH + delta));
+      bar.style.height = newH + 'px';
+      var cam = bar.querySelector('.camera-panel');
+      if (cam) cam.style.width = Math.round(newH * 16 / 9) + 'px';
+    }
+    function onEnd() {
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    }
+    document.addEventListener('touchmove', onMove, {passive: true});
+    document.addEventListener('touchend', onEnd);
+  }, {passive: true});
+}
+
+/* ── Init all resizers ──────────────────────────────────── */
+(function initAllResizers() {
+  /* Sidebar resizers */
+  initSidebarResizer('resizer-mapping',      'sidebar-mapping',      'toggle-mapping');
+  initSidebarResizer('resizer-localization', 'sidebar-localization', 'toggle-localization');
+  initSidebarResizer('resizer-delivery',     'sidebar-delivery',     'toggle-delivery');
+
+  /* Bottom bar resizers */
+  initBottomResizer('resizer-bottom-mapping', 'bottom-bar-mapping');
+  initBottomResizer('resizer-bottom-loc',     'bottom-bar-loc');
+  initBottomResizer('resizer-bottom-del',     'bottom-bar-del');
+})();
+
+/* ── Double-click resizer to reset to default size ─────── */
+document.querySelectorAll('.sidebar-resizer').forEach(function(r) {
+  r.addEventListener('dblclick', function() {
+    var id  = r.id.replace('resizer-', 'sidebar-');
+    var sb  = document.getElementById(id);
+    var tog = document.getElementById(r.id.replace('resizer-', 'toggle-'));
+    if (sb) { sb.style.width = '300px'; sb.classList.remove('collapsed'); }
+    if (tog) tog.textContent = '◀';
+  });
+});
+document.querySelectorAll('.bottom-resizer').forEach(function(r) {
+  r.addEventListener('dblclick', function() {
+    var id = r.id.replace('resizer-bottom-', 'bottom-bar-');
+    var bb = document.getElementById(id);
+    if (bb) bb.style.height = '130px';
+  });
+});
+
+/* ── RESTORE LOCALIZATION AFTER REFRESH ─────────────────────────────── */
+/* If localization was active before the page was refreshed, resume it
+   automatically once the robot is confirmed running. */
+(function restoreLocalizationIfNeeded() {
+  if (localStorage.getItem('robomuse_loc_active') !== '1') return;
+  var savedMap = localStorage.getItem('robomuse_loc_map') || '';
+
+  /* Wait until robot is running (poll /robot_status), then restore */
+  function tryRestore(attempts) {
+    fetch(SERVER_URL + '/robot_status')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (!d.running) {
+          /* Robot not running — localization can't be active, clear state */
+          localStorage.removeItem('robomuse_loc_active');
+          localStorage.removeItem('robomuse_loc_map');
+          return;
+        }
+        /* Robot is running — restore localization view */
+        switchView('localization');
+
+        /* Pre-select the saved map in the dropdown */
+        var sel = document.getElementById('mapSelect');
+        if (sel && savedMap) {
+          /* If options aren't loaded yet, wait briefly */
+          var found = false;
+          for (var i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === savedMap) { sel.value = savedMap; found = true; break; }
+          }
+          if (!found && attempts < 10) {
+            /* Options may still be populating — retry */
+            setTimeout(function() { tryRestore(attempts + 1); }, 400);
+            return;
+          }
+        }
+
+        /* Before restarting the localization stack, check if a mission is
+           currently running on the server. If it is, do NOT call
+           confirmAndLocalize() — that would call startLocalization() which
+           calls cleanup_loc_only() which kills bt_navigator/controller_server
+           and crashes the mission_runner process.
+           Instead, just restore the UI view and let _reconnect() in mission.js
+           handle restoring the mission state. */
+        fetch(SERVER_URL + '/mission/status')
+          .then(function(r) { return r.json(); })
+          .then(function(ms) {
+            if (ms.running) {
+              /* Mission is alive — restore the localization UI WITHOUT
+                 touching Nav2 (calling startLocalization would kill the
+                 running mission). We replicate every DOM step that
+                 confirmAndLocalize() does, minus the Nav2 backend call. */
+              _restoreLocalizationUI(savedMap);
+              showToast('📍 Localization view restored (mission active)', 'info');
+              /* _reconnect() in mission.js fires at 1500 ms and restores
+                 the mission UI + poll loop. */
+            } else {
+              /* No active mission — safe to restart the Nav2 localization stack */
+              confirmAndLocalize();
+              showToast('📍 Localization resumed after refresh', 'info');
+            }
+          })
+          .catch(function() {
+            /* Can't reach server — attempt normal restore */
+            confirmAndLocalize();
+          });
+      })
+      .catch(function() {
+        /* Server unreachable — clear stale state */
+        localStorage.removeItem('robomuse_loc_active');
+        localStorage.removeItem('robomuse_loc_map');
+      });
+  }
+
+  /* Short delay to let ROS bridge + map list finish initializing */
+  setTimeout(function() { tryRestore(0); }, 1200);
+})();
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MAP EDITOR MODAL
+════════════════════════════════════════════════════════════════════ -->
+<div id="map-editor-overlay" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;">
+
+  <!-- SELECT MAP STEP -->
+  <div id="map-editor-select" style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:32px 36px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="font-family:var(--font-head);font-size:14px;font-weight:700;color:var(--accent);letter-spacing:2px;">✏️ EDIT MAP</div>
+      <button onclick="closeMapEditor()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">Select a saved map to edit:</div>
+    <select id="edit-map-select" style="width:100%;padding:10px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;margin-bottom:16px;"></select>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeMapEditor()" style="flex:1;padding:12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:13px;cursor:pointer;">Cancel</button>
+      <button onclick="loadMapForEditing()" style="flex:2;padding:12px;background:linear-gradient(135deg,#0ea5e9,#0369a1);border:none;border-radius:7px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">Open for Editing →</button>
+    </div>
+  </div>
+
+  <!-- EDITOR CANVAS STEP -->
+  <div id="map-editor-canvas-wrap" style="display:none;flex-direction:column;width:96vw;max-width:1300px;height:92vh;background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7);">
+
+    <!-- Toolbar row -->
+    <div style="display:flex;align-items:center;gap:0;padding:10px 16px;background:var(--panel2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;gap:8px;">
+      <div style="font-family:var(--font-head);font-size:12px;font-weight:700;color:var(--accent);letter-spacing:2px;margin-right:8px;">✏️ MAP EDITOR</div>
+      <span id="edit-map-filename" style="font-size:12px;color:var(--muted);margin-right:12px;"></span>
+
+      <!-- Tool type -->
+      <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+        <span style="font-size:11px;color:var(--muted);margin-right:4px;font-weight:600;">TOOL:</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+          <input type="radio" name="edit-tool-type" id="tool-wall"   value="wall"   checked onchange="setEditorTool()" style="accent-color:var(--red);">
+          <span style="color:#e2e8f0;">Wall</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+          <input type="radio" name="edit-tool-type" id="tool-floor"  value="floor"  onchange="setEditorTool()" style="accent-color:var(--green);">
+          <span style="color:#e2e8f0;">Floor</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+          <input type="radio" name="edit-tool-type" id="tool-eraser" value="eraser" onchange="setEditorTool()" style="accent-color:var(--yellow);">
+          <span style="color:#e2e8f0;">Eraser</span>
+        </label>
+      </div>
+
+      <!-- Tool shape -->
+      <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+        <span style="font-size:11px;color:var(--muted);margin-right:4px;font-weight:600;">SHAPE:</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+          <input type="radio" name="edit-tool-shape" id="shape-brush" value="brush" checked onchange="setEditorTool()" style="accent-color:var(--accent);">
+          <span style="color:#e2e8f0;">Brush</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+          <input type="radio" name="edit-tool-shape" id="shape-line"  value="line"  onchange="setEditorTool()" style="accent-color:var(--accent);">
+          <span style="color:#e2e8f0;">Line</span>
+        </label>
+      </div>
+
+      <!-- Line width -->
+      <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+        <span style="font-size:11px;color:var(--muted);font-weight:600;">WIDTH:</span>
+        <input type="number" id="edit-line-width" value="4" min="1" max="60" step="1"
+               style="width:52px;padding:4px 6px;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:12px;text-align:center;"
+               oninput="setEditorTool()">
+        <span style="font-size:11px;color:var(--muted);">px</span>
+      </div>
+
+      <!-- Zoom -->
+      <div style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;">
+        <span style="font-size:11px;color:var(--muted);font-weight:600;">ZOOM:</span>
+        <button onclick="editorZoom(-0.25)" style="width:26px;height:26px;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:16px;font-weight:700;cursor:pointer;line-height:1;">−</button>
+        <span id="edit-zoom-label" style="font-size:11px;color:var(--accent);min-width:38px;text-align:center;">100%</span>
+        <button onclick="editorZoom(+0.25)" style="width:26px;height:26px;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:16px;font-weight:700;cursor:pointer;line-height:1;">+</button>
+        <button onclick="editorFit()" title="Fit to screen" style="width:26px;height:26px;background:rgba(255,255,255,0.08);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:13px;cursor:pointer;line-height:1;">⊞</button>
+      </div>
+
+      <!-- Undo -->
+      <button onclick="editorUndo()" title="Undo (Ctrl+Z)" style="padding:7px 14px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;cursor:pointer;">↩ Undo</button>
+
+      <!-- Save / Discard -->
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button onclick="discardMapEdit()" style="padding:8px 20px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);border-radius:7px;color:var(--red);font-weight:700;font-size:13px;cursor:pointer;">🗑 Discard</button>
+        <button onclick="saveMapEdit()"    style="padding:8px 24px;background:linear-gradient(135deg,#0ea5e9,#0369a1);border:none;border-radius:7px;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">💾 Save</button>
+      </div>
+    </div>
+
+    <!-- Canvas area -->
+    <div id="edit-canvas-container" style="flex:1;overflow:hidden;position:relative;background:#111;cursor:crosshair;">
+      <canvas id="map-edit-canvas" style="position:absolute;top:0;left:0;image-rendering:pixelated;transform-origin:0 0;"></canvas>
+      <!-- Line preview overlay -->
+      <canvas id="map-edit-overlay" style="position:absolute;top:0;left:0;pointer-events:none;transform-origin:0 0;"></canvas>
+    </div>
+
+    <!-- Status bar -->
+    <div style="display:flex;align-items:center;gap:16px;padding:6px 16px;background:var(--panel2);border-top:1px solid var(--border);flex-shrink:0;font-size:11px;color:var(--muted);">
+      <span>Cursor: <span id="edit-cursor-pos" style="color:var(--accent);">—</span></span>
+      <span>Map size: <span id="edit-map-size" style="color:var(--accent);">—</span></span>
+      <span style="margin-left:auto;">🖱 Drag=draw  |  Shift+Drag=pan  |  Scroll=zoom  |  Ctrl+Z=undo</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   MAP EDITOR — full canvas-based wall/floor/eraser editor
+   with Brush and Line tools, zoom/pan, undo stack.
+   Saves edited PNG back to server which converts to PGM.
+============================================================ */
+(function() {
+
+  /* ── State ────────────────────────────────────────────────────── */
+  var _mapName   = '';       // e.g. "warehouse_a.pgm"
+  var _origW     = 0;
+  var _origH     = 0;
+  var _zoom      = 1.0;
+  var _panX      = 0;
+  var _panY      = 0;
+  var _toolType  = 'wall';   // wall | floor | eraser
+  var _toolShape = 'brush';  // brush | line
+  var _lineWidth = 4;        // px on the source canvas
+
+  // Colours painted onto the canvas:
+  var WALL_COLOR   = '#000000';   // black  → occupied
+  var FLOOR_COLOR  = '#ffffff';   // white  → free
+  var UNKNOWN_COLOR= '#808080';   // grey   → unknown (eraser restores to unknown)
+
+  var _undoStack = [];
+  var MAX_UNDO   = 30;
+
+  // Line tool state
+  var _lineStart = null;   // {x,y} in canvas coords
+
+  // Pan state
+  var _panning   = false;
+  var _panStart  = null;
+  var _panOrigin = null;
+
+  // Draw state (brush)
+  var _drawing   = false;
+  var _lastPt    = null;
+
+  var _mainCanvas, _mainCtx;
+  var _overlayCanvas, _overlayCtx;
+  var _container;
+
+  /* ── Public: open selector ──────────────────────────────────── */
+  window.openMapEditor = function() {
+    // Edit Map works regardless of robot state — just needs Flask server running
+    var editBtn = document.getElementById('btn-edit-map');
+    if (editBtn) editBtn.disabled = false;
+
+    var overlay = document.getElementById('map-editor-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('map-editor-select').style.display = 'block';
+    document.getElementById('map-editor-canvas-wrap').style.display = 'none';
+
+    // Populate map list
+    fetch(SERVER_URL + '/maps')
+      .then(function(r){ return r.json(); })
+      .then(function(maps) {
+        var sel = document.getElementById('edit-map-select');
+        sel.innerHTML = '';
+        if (!maps.length) {
+          sel.innerHTML = '<option>No maps found</option>';
+          return;
+        }
+        maps.forEach(function(m) {
+          var o = document.createElement('option');
+          o.value = o.textContent = m;
+          sel.appendChild(o);
+        });
+      })
+      .catch(function(){ showToast('⚠ Could not load map list', 'error'); });
+  };
+
+  window.closeMapEditor = function() {
+    document.getElementById('map-editor-overlay').style.display = 'none';
+  };
+
+  /* ── Public: load selected map onto canvas ──────────────────── */
+  window.loadMapForEditing = function() {
+    var sel  = document.getElementById('edit-map-select');
+    var name = sel.value;
+    if (!name || name === 'No maps found') {
+      showToast('⚠ Select a map first', 'error'); return;
+    }
+    _mapName = name;
+    var imgName = name.replace(/\.yaml$/, '.pgm');
+
+    document.getElementById('map-editor-select').style.display = 'none';
+    document.getElementById('map-editor-canvas-wrap').style.display = 'flex';
+    document.getElementById('edit-map-filename').textContent = name;
+    document.getElementById('edit-map-size').textContent = '…';
+
+    _mainCanvas   = document.getElementById('map-edit-canvas');
+    _mainCtx      = _mainCanvas.getContext('2d');
+    _overlayCanvas= document.getElementById('map-edit-overlay');
+    _overlayCtx   = _overlayCanvas.getContext('2d');
+    _container    = document.getElementById('edit-canvas-container');
+    _undoStack    = [];
+    _lineStart    = null;
+
+    // Load via server's map_image endpoint (returns PNG)
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      _origW = img.naturalWidth;
+      _origH = img.naturalHeight;
+      _mainCanvas.width    = _origW;
+      _mainCanvas.height   = _origH;
+      _overlayCanvas.width = _origW;
+      _overlayCanvas.height= _origH;
+      _mainCtx.drawImage(img, 0, 0);
+      document.getElementById('edit-map-size').textContent = _origW + ' × ' + _origH + ' px';
+      // Fit canvas to container
+      editorFit();
+      attachEditorEvents();
+      showToast('✏️ Map loaded — start editing', 'info');
+    };
+    img.onerror = function() {
+      showToast('⚠ Failed to load map image', 'error');
+    };
+    img.src = SERVER_URL + '/map_image/' + imgName;
+  };
+
+  /* ── Public: tool setter ────────────────────────────────────── */
+  window.setEditorTool = function() {
+    var t = document.querySelector('input[name="edit-tool-type"]:checked');
+    var s = document.querySelector('input[name="edit-tool-shape"]:checked');
+    var w = document.getElementById('edit-line-width');
+    _toolType  = t ? t.value : 'wall';
+    _toolShape = s ? s.value : 'brush';
+    _lineWidth = Math.max(1, parseInt(w ? w.value : 4) || 4);
+    if (_mainCanvas) {
+      _mainCanvas.style.cursor = _toolType === 'eraser' ? 'cell' : 'crosshair';
+    }
+  };
+
+  /* ── Zoom ───────────────────────────────────────────────────── */
+  window.editorZoom = function(delta) {
+    _zoom = Math.max(0.1, Math.min(16, _zoom + delta));
+    _applyTransform();
+  };
+  window.editorFit = function() {
+    if (!_mainCanvas || !_container) return;
+    var cw = _container.clientWidth  || 800;
+    var ch = _container.clientHeight || 600;
+    var zx = cw / _origW;
+    var zy = ch / _origH;
+    _zoom = Math.min(zx, zy) * 0.95;
+    _panX = Math.round((cw - _origW * _zoom) / 2);
+    _panY = Math.round((ch - _origH * _zoom) / 2);
+    _applyTransform();
+  };
+  function _applyTransform() {
+    if (!_mainCanvas) return;
+    var t = 'translate(' + _panX + 'px,' + _panY + 'px) scale(' + _zoom + ')';
+    _mainCanvas.style.transform    = t;
+    _overlayCanvas.style.transform = t;
+    var lbl = document.getElementById('edit-zoom-label');
+    if (lbl) lbl.textContent = Math.round(_zoom * 100) + '%';
+  }
+
+  /* ── Undo ───────────────────────────────────────────────────── */
+  window.editorUndo = function() {
+    if (!_undoStack.length) { showToast('Nothing to undo', 'info'); return; }
+    var snap = _undoStack.pop();
+    _mainCtx.putImageData(snap, 0, 0);
+    showToast('↩ Undo', 'info');
+  };
+  function _pushUndo() {
+    if (!_mainCtx) return;
+    var snap = _mainCtx.getImageData(0, 0, _origW, _origH);
+    _undoStack.push(snap);
+    if (_undoStack.length > MAX_UNDO) _undoStack.shift();
+  }
+
+  /* ── Draw helpers ────────────────────────────────────────────── */
+  function _paintColor() {
+    if (_toolType === 'wall')   return WALL_COLOR;
+    if (_toolType === 'floor')  return FLOOR_COLOR;
+    return UNKNOWN_COLOR;  // eraser → grey
+  }
+  function _brushAt(ctx, x, y) {
+    ctx.fillStyle = _paintColor();
+    ctx.beginPath();
+    ctx.arc(x, y, _lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  function _lineBetween(ctx, x0, y0, x1, y1) {
+    ctx.strokeStyle = _paintColor();
+    ctx.lineWidth   = _lineWidth;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.stroke();
+  }
+
+  /* ── Convert mouse event → canvas pixel coords ──────────────── */
+  function _eventToCanvas(e) {
+    var rect = _mainCanvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left)  / _zoom,
+      y: (e.clientY - rect.top)   / _zoom
+    };
+  }
+
+  /* ── Attach all canvas events (called once after load) ───────── */
+  function attachEditorEvents() {
+    var c = _mainCanvas;
+
+    // Mouse down
+    c.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var pt = _eventToCanvas(e);
+
+      // Shift = pan
+      if (e.shiftKey) {
+        _panning   = true;
+        _panStart  = { x: e.clientX, y: e.clientY };
+        _panOrigin = { x: _panX,     y: _panY };
+        c.style.cursor = 'grabbing';
+        return;
+      }
+
+      _pushUndo();
+
+      if (_toolShape === 'line') {
+        _lineStart = pt;
+      } else {
+        _drawing = true;
+        _lastPt  = pt;
+        _brushAt(_mainCtx, pt.x, pt.y);
+      }
+    });
+
+    // Mouse move
+    window.addEventListener('mousemove', function(e) {
+      if (!_mainCanvas) return;
+      // Update cursor coords
+      var rect = _mainCanvas.getBoundingClientRect();
+      var px = Math.round((e.clientX - rect.left) / _zoom);
+      var py = Math.round((e.clientY - rect.top)  / _zoom);
+      var lbl = document.getElementById('edit-cursor-pos');
+      if (lbl) lbl.textContent = px + ', ' + py;
+
+      // Pan
+      if (_panning && _panStart) {
+        _panX = _panOrigin.x + (e.clientX - _panStart.x);
+        _panY = _panOrigin.y + (e.clientY - _panStart.y);
+        _applyTransform();
+        return;
+      }
+
+      // Brush drawing
+      if (_drawing && _toolShape === 'brush' && _lastPt) {
+        var pt = _eventToCanvas(e);
+        _lineBetween(_mainCtx, _lastPt.x, _lastPt.y, pt.x, pt.y);
+        _lastPt = pt;
+      }
+
+      // Line preview
+      if (_toolShape === 'line' && _lineStart) {
+        var pt = _eventToCanvas(e);
+        _overlayCtx.clearRect(0, 0, _origW, _origH);
+        _lineBetween(_overlayCtx, _lineStart.x, _lineStart.y, pt.x, pt.y);
+      }
+    });
+
+    // Mouse up
+    window.addEventListener('mouseup', function(e) {
+      if (!_mainCanvas) return;
+
+      // End pan
+      if (_panning) {
+        _panning = false;
+        _mainCanvas.style.cursor = _toolType === 'eraser' ? 'cell' : 'crosshair';
+        return;
+      }
+
+      // End brush
+      if (_drawing) {
+        _drawing = false;
+        _lastPt  = null;
+        return;
+      }
+
+      // Commit line
+      if (_toolShape === 'line' && _lineStart) {
+        var pt = _eventToCanvas(e);
+        _lineBetween(_mainCtx, _lineStart.x, _lineStart.y, pt.x, pt.y);
+        _overlayCtx.clearRect(0, 0, _origW, _origH);
+        _lineStart = null;
+      }
+    });
+
+    // Scroll wheel → zoom
+    _container.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var delta = e.deltaY < 0 ? 0.15 : -0.15;
+      // Zoom toward mouse position
+      var rect  = _container.getBoundingClientRect();
+      var mx    = e.clientX - rect.left;
+      var my    = e.clientY - rect.top;
+      var newZ  = Math.max(0.1, Math.min(16, _zoom + delta));
+      _panX = mx - (mx - _panX) * (newZ / _zoom);
+      _panY = my - (my - _panY) * (newZ / _zoom);
+      _zoom = newZ;
+      _applyTransform();
+    }, { passive: false });
+
+    // Ctrl+Z undo
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' &&
+          document.getElementById('map-editor-overlay').style.display !== 'none') {
+        e.preventDefault();
+        editorUndo();
+      }
+    });
+  }
+
+  /* ── Save ────────────────────────────────────────────────────── */
+  window.saveMapEdit = function() {
+    if (!_mainCanvas) return;
+    var png = _mainCanvas.toDataURL('image/png');
+    var b64 = png.replace(/^data:image\/png;base64,/, '');
+    var btn = document.querySelector('#map-editor-canvas-wrap button[onclick="saveMapEdit()"]');
+    if (btn) { btn.textContent = '⏳ Saving…'; btn.disabled = true; }
+
+    fetch(SERVER_URL + '/map/save_edit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: _mapName, png: b64 })
+    })
+      .then(function(r){ return r.json(); })
+      .then(function(data) {
+        if (btn) { btn.textContent = '💾 Save'; btn.disabled = false; }
+        if (data.status === 'map_edit_saved') {
+          showToast('✅ Map saved: ' + _mapName, 'success');
+          closeMapEditor();
+        } else {
+          showToast('⚠ Save failed: ' + (data.message || 'unknown'), 'error');
+        }
+      })
+      .catch(function() {
+        if (btn) { btn.textContent = '💾 Save'; btn.disabled = false; }
+        showToast('⚠ Network error saving map edit', 'error');
+      });
+  };
+
+  /* ── Discard ─────────────────────────────────────────────────── */
+  window.discardMapEdit = function() {
+    if (_undoStack.length > 0 || _lineStart) {
+      if (!confirm('Discard all changes to ' + _mapName + '?')) return;
+    }
+    _undoStack = [];
+    _lineStart = null;
+    showToast('🗑 Edit discarded', 'info');
+    closeMapEditor();
+  };
+
+})();
+</script>
+
+</body>
+</html>
